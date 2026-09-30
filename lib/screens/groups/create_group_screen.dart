@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
+import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import 'group_dashboard_screen.dart';
@@ -38,7 +38,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       firstDate: DateTime(today.year, today.month, today.day),
       lastDate: DateTime(today.year + 5),
     );
-    if (picked != null) setState(() => startDate = picked);
+    if (picked != null && mounted) setState(() => startDate = picked);
   }
 
   Future<void> submit() async {
@@ -62,14 +62,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       );
       await app.refreshReminders(user.id);
       if (!mounted) return;
+      showInfo(
+        context,
+        'Group created. Share invite code ${group.inviteCode}.',
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => GroupDashboardScreen(groupId: group.id),
         ),
-      );
-      showInfo(
-        context,
-        'Group created. Share invite code ${group.inviteCode}.',
       );
     } catch (error) {
       if (mounted) showError(context, error);

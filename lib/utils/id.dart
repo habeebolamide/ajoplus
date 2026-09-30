@@ -1,1 +1,3 @@
-String newId() => DateTime.now().microsecondsSinceEpoch.toString();
+import 'package:uuid/uuid.dart';
+
+String newId() => const Uuid().v4();

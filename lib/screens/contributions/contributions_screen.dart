@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
+import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import 'payment_screen.dart';

@@ -19,12 +19,11 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Notification reminders'),
             subtitle: const Text('Show local savings reminders'),
             value: settings.reminders,
-            onChanged: (enabled) {
-              settings.setReminders(enabled);
-              final user = context.read<AuthProvider>().user;
-              if (user != null) {
-                context.read<AppProvider>().refreshReminders(user.id);
-              }
+            onChanged: (enabled) async {
+              final app = context.read<AppProvider>();
+              final userId = context.read<AuthProvider>().user!.id;
+              await settings.setReminders(enabled);
+              await app.refreshReminders(userId);
             },
           ),
           const SectionTitle('Appearance'),
@@ -36,7 +35,7 @@ class SettingsScreen extends StatelessWidget {
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
               ),
-              onTap: () => settings.setMode(mode),
+              onTap: () async => settings.setMode(mode),
             ),
           ),
           const Divider(),

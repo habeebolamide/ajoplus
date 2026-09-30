@@ -39,6 +39,13 @@ class StorageService {
       await _migrateAmount(box, 'amount', 'amountKobo');
     }
 
+    for (final key in notifications.keys.toList()) {
+      final stored = Map<String, Object?>.from(notifications.get(key) as Map);
+      if (stored.containsKey('userId')) continue;
+      stored['userId'] = 'demo';
+      await notifications.put(key, stored);
+    }
+
     for (final key in users.keys.toList()) {
       final stored = Map<String, Object?>.from(users.get(key) as Map);
       final password = stored.remove('password') as String?;
@@ -236,6 +243,7 @@ class StorageService {
       'welcome',
       AppNotification(
         'welcome',
+        demo.id,
         'Welcome to AjoPlus',
         'Campus Savers is ready. Follow contributions and your payout turn here.',
         'info',

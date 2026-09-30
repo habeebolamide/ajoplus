@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
+import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import 'group_dashboard_screen.dart';
@@ -36,17 +37,18 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   }
 
   Future<void> join() async {
-    if (found == null || joining) return;
+    final group = found;
+    if (group == null || joining) return;
     setState(() => joining = true);
     final app = context.read<AppProvider>();
     final user = context.read<AuthProvider>().user!;
     try {
-      await app.join(found!, user);
+      await app.join(group, user);
       await app.refreshReminders(user.id);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => GroupDashboardScreen(groupId: found!.id),
+          builder: (_) => GroupDashboardScreen(groupId: group.id),
         ),
       );
     } catch (error) {
@@ -60,6 +62,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final user = context.watch<AuthProvider>().user!;
+    final group = found;
     final available = app.groups
         .where(
           (group) =>
@@ -96,7 +99,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           ),
           const SizedBox(height: 12),
           FilledButton(onPressed: search, child: const Text('Find Group')),
-          if (found != null) ...[
+          if (group != null) ...[
             const SectionTitle('Group details'),
             Card(
               child: Padding(
@@ -105,25 +108,25 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      found!.name,
+                      group.name,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    Text(found!.description),
+                    Text(group.description),
                     const SizedBox(height: 10),
                     Text(
-                      'Organizer: ${found!.creatorId == 'demo' ? 'Habeeblah Adenubi' : 'Local organizer'}',
+                      'Organizer: ${group.creatorId == 'demo' ? 'Habeeblah Adenubi' : 'Local organizer'}',
                     ),
                     Text(
-                      'Contribution: ${money(found!.contributionAmountKobo)} · ${found!.frequency}',
+                      'Contribution: ${money(group.contributionAmountKobo)} · ${group.frequency}',
                     ),
                     Text(
-                      'Members: ${app.groupMembers(found!.id).length}/${found!.maxMembers}',
+                      'Members: ${app.groupMembers(group.id).length}/${group.maxMembers}',
                     ),
                     Text(
-                      'Available slots: ${found!.maxMembers - app.groupMembers(found!.id).length}',
+                      'Available slots: ${group.maxMembers - app.groupMembers(group.id).length}',
                     ),
-                    Text('Starts: ${shortDate(found!.startDate)}'),
+                    Text('Starts: ${shortDate(group.startDate)}'),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: joining ? null : join,

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:ajoplus/models/models.dart';
 import 'package:ajoplus/providers/providers.dart';
 import 'package:ajoplus/services/services.dart';
+import 'package:ajoplus/utils/formatters.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,7 +89,6 @@ void main() {
     );
     expect(GroupService.cycleDate(group, 2), DateTime(2026, 2, 28));
     expect(GroupService.cycleDate(group, 3), DateTime(2026, 3, 31));
-    expect(GroupService.currentCycle(group), 1);
   });
 
   test(
@@ -187,6 +187,10 @@ void main() {
       null,
     );
     await StorageService.groups.put(group.id, group.toMap());
+    await StorageService.members.put(
+      'member',
+      GroupMember('member', group.id, 'ada', 'Ada', 1, now).toMap(),
+    );
     await StorageService.contributions.put(row.id, row.toMap());
     final app = AppProvider();
     final reference = await app.pay(group, row, succeed: true);
@@ -208,7 +212,12 @@ void main() {
       '',
       null,
     );
+    await StorageService.members.put(
+      'second-member',
+      GroupMember('second-member', group.id, 'bisi', 'Bisi', 2, now).toMap(),
+    );
     await StorageService.contributions.put(failedRow.id, failedRow.toMap());
+    app.reload();
     await expectLater(
       app.pay(group, failedRow, succeed: false),
       throwsStateError,
@@ -261,6 +270,14 @@ void main() {
     await StorageService.contributions.put('legacy-contribution', {
       'amount': 1250,
     });
+    await StorageService.notifications.put('legacy-notification', {
+      'id': 'legacy-notification',
+      'title': 'Welcome',
+      'message': 'Your group is ready.',
+      'type': 'info',
+      'createdAt': DateTime(2026).toIso8601String(),
+      'isRead': false,
+    });
     final legacyUser = AppUser(
       'legacy-user',
       'Legacy Saver',
@@ -285,12 +302,16 @@ void main() {
       final user = Map<String, Object?>.from(
         StorageService.users.get(legacyUser.id) as Map,
       );
+      final notification = Map<String, Object?>.from(
+        StorageService.notifications.get('legacy-notification') as Map,
+      );
       expect(group['contributionAmountKobo'], 125000);
       expect(group, isNot(contains('contributionAmount')));
       expect(contribution['amountKobo'], 125000);
       expect(contribution, isNot(contains('amount')));
       expect(user, isNot(contains('password')));
       expect(user['passwordHash'], isA<String>());
+      expect(notification['userId'], 'demo');
       expect(money(125050), '₦1,250.50');
       expect(
         (await AuthService().login(legacyUser.email, 'password123')).id,
@@ -300,6 +321,87 @@ void main() {
       await StorageService.groups.delete('legacy-money');
       await StorageService.contributions.delete('legacy-contribution');
       await StorageService.users.delete(legacyUser.id);
+      await StorageService.notifications.delete('legacy-notification');
+    }
+  });
+
+  test('transactions and notifications are scoped to their user', () async {
+    final now = DateTime.now();
+    final group = SavingsGroup(
+      id: 'private-group',
+      name: 'Private Group',
+      description: '',
+      creatorId: 'private-owner',
+      contributionAmountKobo: 125050,
+      frequency: 'Monthly',
+      maxMembers: 2,
+      startDate: now,
+      inviteCode: 'AJO-PRIVATE',
+      currentCycle: 1,
+      createdAt: now,
+    );
+    await StorageService.groups.put(group.id, group.toMap());
+    await StorageService.members.put(
+      'private-member',
+      GroupMember(
+        'private-member',
+        group.id,
+        'private-owner',
+        'Owner',
+        1,
+        now,
+      ).toMap(),
+    );
+    final transaction = AppTransaction(
+      'private-transaction',
+      group.id,
+      'private-member',
+      'Owner',
+      group.name,
+      'Contribution',
+      125050,
+      'Successful',
+      'PRIVATE-REF',
+      now,
+    );
+    await StorageService.transactions.put(transaction.id, transaction.toMap());
+    final notification = AppNotification(
+      'private-notification',
+      'private-owner',
+      'Contribution received',
+      'Your payment was recorded.',
+      'contribution',
+      now,
+      false,
+    );
+    await StorageService.notifications.put(
+      notification.id,
+      notification.toMap(),
+    );
+
+    try {
+      final app = AppProvider();
+      expect(
+        app.myTransactions('private-owner').map((row) => row.id),
+        contains(transaction.id),
+      );
+      expect(
+        app.myTransactions('stranger').map((row) => row.id),
+        isNot(contains(transaction.id)),
+      );
+      expect(
+        app.myNotifications('private-owner').map((row) => row.id),
+        contains(notification.id),
+      );
+      expect(
+        app.myNotifications('stranger').map((row) => row.id),
+        isNot(contains(notification.id)),
+      );
+    } finally {
+      await StorageService.groups.delete(group.id);
+      await StorageService.members.delete('private-member');
+      await StorageService.transactions.delete(transaction.id);
+      await StorageService.notifications.delete(notification.id);
     }
   });
 

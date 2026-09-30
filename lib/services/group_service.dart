@@ -87,7 +87,6 @@ class GroupService {
           .fold(0, (sum, c) => sum + c.amountKobo);
   static double progress(int balance, int expected) =>
       expected <= 0 ? 0 : (balance / expected).clamp(0, 1);
-  static int currentCycle(SavingsGroup group) => group.currentCycle;
   static bool isComplete(Iterable<Payout> payouts, int cycle) =>
       payouts.any((p) => p.cycle == cycle && p.status == 'Completed');
   static String inviteCode() {

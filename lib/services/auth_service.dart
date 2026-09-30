@@ -1,4 +1,5 @@
 import '../models/models.dart';
+import '../utils/id.dart';
 import 'password_hash.dart';
 import 'storage_service.dart';
 
@@ -42,7 +43,7 @@ class AuthService {
     final normalized = email.trim().toLowerCase();
     for (final raw in StorageService.users.values) {
       final user = AppUser.from(raw);
-      if (user.email != normalized) continue;
+      if (user.email.toLowerCase() != normalized) continue;
 
       final stored = Map<String, Object?>.from(raw as Map);
       final hash = stored['passwordHash'] as String?;

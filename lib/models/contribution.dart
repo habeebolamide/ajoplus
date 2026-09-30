@@ -15,6 +15,7 @@ class Contribution {
   );
   factory Contribution.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
+    final paidAt = m['paidAt'] as String?;
     return Contribution(
       m['id'] as String,
       m['groupId'] as String,
@@ -24,9 +25,7 @@ class Contribution {
       m['amountKobo'] as int? ?? (m['amount'] as int) * 100,
       m['status'] as String,
       m['paymentReference'] as String,
-      (m['paidAt'] as String?) == null
-          ? null
-          : DateTime.parse(m['paidAt'] as String),
+      paidAt == null ? null : DateTime.parse(paidAt),
     );
   }
   Map<String, dynamic> toMap() => {

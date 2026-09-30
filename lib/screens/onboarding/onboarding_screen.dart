@@ -30,6 +30,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   Future<void> finish() async {
     await StorageService.prefs.setBool('onboarded', true);
     if (!mounted) return;

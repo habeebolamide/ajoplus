@@ -1,9 +1,10 @@
 class AppNotification {
-  final String id, title, message, type;
+  final String id, userId, title, message, type;
   final DateTime createdAt;
   final bool isRead;
   const AppNotification(
     this.id,
+    this.userId,
     this.title,
     this.message,
     this.type,
@@ -14,6 +15,7 @@ class AppNotification {
     final m = Map<String, Object?>.from(raw as Map);
     return AppNotification(
       m['id'] as String,
+      m['userId'] as String,
       m['title'] as String,
       m['message'] as String,
       m['type'] as String,
@@ -23,6 +25,7 @@ class AppNotification {
   }
   Map<String, dynamic> toMap() => {
     'id': id,
+    'userId': userId,
     'title': title,
     'message': message,
     'type': type,
@@ -30,5 +33,5 @@ class AppNotification {
     'isRead': isRead,
   };
   AppNotification read() =>
-      AppNotification(id, title, message, type, createdAt, true);
+      AppNotification(id, userId, title, message, type, createdAt, true);
 }

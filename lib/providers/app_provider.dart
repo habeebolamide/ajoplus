@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../utils/formatters.dart';
+import '../utils/id.dart';
 import '../services/services.dart';
 
 class AppProvider extends ChangeNotifier {
@@ -50,6 +52,13 @@ class AppProvider extends ChangeNotifier {
           .toList();
   List<AppTransaction> groupTransactions(String id) =>
       transactions.where((t) => t.groupId == id).toList();
+  List<AppTransaction> myTransactions(String userId) {
+    final groupIds = myGroups(userId).map((group) => group.id).toSet();
+    return transactions.where((row) => groupIds.contains(row.groupId)).toList();
+  }
+
+  List<AppNotification> myNotifications(String userId) =>
+      notifications.where((row) => row.userId == userId).toList();
   bool isMember(String groupId, String userId) =>
       members.any((m) => m.groupId == groupId && m.userId == userId);
   List<SavingsGroup> myGroups(String userId) =>
@@ -198,6 +207,7 @@ class AppProvider extends ChangeNotifier {
       contribution.toMap(),
     );
     await addNotification(
+      user.id,
       'Group joined',
       'You joined ${group.name}. Your payout position is ${member.payoutPosition}.',
       'group',
@@ -214,6 +224,9 @@ class AppProvider extends ChangeNotifier {
     if (contribution.status == 'Paid') {
       throw StateError('This contribution has already been paid.');
     }
+    final member = members.firstWhere(
+      (member) => member.id == contribution.memberId,
+    );
     busy = true;
     notifyListeners();
     try {
@@ -256,6 +269,7 @@ class AppProvider extends ChangeNotifier {
       );
       await StorageService.transactions.put(tx.id, tx.toMap());
       await addNotification(
+        member.userId,
         'Contribution received',
         '${contribution.memberName} paid ${money(contribution.amountKobo)} to ${group.name}.',
         'contribution',
@@ -345,6 +359,7 @@ class AppProvider extends ChangeNotifier {
       );
     }
     await addNotification(
+      receiver.userId,
       'Payout completed',
       '${receiver.name} received ${money(amountKobo)} from ${group.name}.',
       'payout',
@@ -353,12 +368,14 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> addNotification(
+    String userId,
     String title,
     String message,
     String type,
   ) async {
     final row = AppNotification(
       newId(),
+      userId,
       title,
       message,
       type,
@@ -445,10 +462,11 @@ class AppProvider extends ChangeNotifier {
       }
       if (message == null) continue;
       final key =
-          'reminder-${group.id}-${group.currentCycle}-${reminderId(message)}';
+          'reminder-$userId-${group.id}-${group.currentCycle}-${reminderId(message)}';
       if (StorageService.notifications.containsKey(key)) continue;
       final row = AppNotification(
         key,
+        userId,
         'AjoPlus reminder',
         message,
         'reminder',

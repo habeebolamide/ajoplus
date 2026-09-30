@@ -18,7 +18,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
-    final rows = app.transactions
+    final userId = context.watch<AuthProvider>().user!.id;
+    final rows = app
+        .myTransactions(userId)
         .where(
           (row) =>
               (widget.groupId == null || row.groupId == widget.groupId) &&

@@ -15,6 +15,7 @@ class Payout {
   );
   factory Payout.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
+    final completedAt = m['completedAt'] as String?;
     return Payout(
       m['id'] as String,
       m['groupId'] as String,
@@ -23,9 +24,7 @@ class Payout {
       m['amountKobo'] as int? ?? (m['amount'] as int) * 100,
       DateTime.parse(m['payoutDate'] as String),
       m['status'] as String,
-      (m['completedAt'] as String?) == null
-          ? null
-          : DateTime.parse(m['completedAt'] as String),
+      completedAt == null ? null : DateTime.parse(completedAt),
     );
   }
   Map<String, dynamic> toMap() => {

@@ -2,9 +2,11 @@
 
 AjoPlus is a Flutter application for managing Nigerian **ajo/esusu** rotating-savings groups. It lets members create and join groups, track contributions, follow payout rotations, review activity, and receive contribution reminders.
 
-This repository contains the mobile client. The companion API lives in [ajoplus-backend](https://github.com/habeebolamide/ajoplus-backend).
+This repository contains the mobile client. The companion Laravel API is maintained separately.
 
 > **Current status:** the app is an offline demo. Data, authentication, and payment outcomes are stored or simulated locally; it does not yet call the backend or move real money.
+
+Monetary records are stored as integer kobo. Naira formatting happens only in the UI. Existing local Hive records are migrated on startup.
 
 ## Features
 
@@ -23,6 +25,7 @@ This repository contains the mobile client. The companion API lives in [ajoplus-
 - Hive for on-device records
 - SharedPreferences for small device settings and session state
 - `flutter_local_notifications` for reminder scheduling
+- `cryptography` for salted local password hashes
 
 ## Prerequisites
 
@@ -54,7 +57,7 @@ Email:    demo@ajoplus.local
 Password: password123
 ```
 
-Demo records are seeded once by `StorageService` and persisted in local Hive boxes. To generate fresh demo data, clear the app's local data or reinstall it.
+Demo records are seeded once by `StorageService` and persisted in local Hive boxes. Existing plaintext demo credentials are migrated to password hashes on startup. To generate fresh demo data, clear the app's local data or reinstall it.
 
 The app uses sample groups such as **Campus Savers**, **Market Circle**, and **Family Goals**. All payments are simulated and are safe to explore.
 
@@ -72,6 +75,10 @@ lib/
 test/           Unit and widget tests
 ```
 
+## Coding standard
+
+The complete Flutter Anti-Slop skill is installed at [`.codex/skills/anti-slop-flutter/SKILL.md`](.codex/skills/anti-slop-flutter/SKILL.md). Future Codex sessions should read it before Flutter or Dart changes; [`AGENTS.md`](AGENTS.md) makes that requirement explicit for this repository.
+
 ## Contribution scheduling
 
 Contribution due dates are derived from the selected frequency rather than the date demo data was first created:
@@ -87,7 +94,7 @@ Payout progression still requires the group organizer to complete a cycle once e
 
 ## Backend integration
 
-The planned API repository is [ajoplus-backend](https://github.com/habeebolamide/ajoplus-backend). Keep API URLs, secrets, tokens, and payment-provider credentials out of this repository. Use local environment files (for example, `.env`) that are ignored by Git.
+The companion Laravel API is a separate project. This Flutter demo does not yet call it. Keep API URLs, secrets, tokens, and payment-provider credentials out of this repository. Use local environment files (for example, `.env`) that are ignored by Git.
 
 ## Security and data handling
 

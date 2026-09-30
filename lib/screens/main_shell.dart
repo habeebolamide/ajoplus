@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/providers.dart';
@@ -20,11 +22,8 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final user = context.read<AuthProvider>().user;
-      if (user != null) context.read<AppProvider>().refreshReminders(user.id);
-    });
+    final userId = context.read<AuthProvider>().user!.id;
+    unawaited(context.read<AppProvider>().refreshReminders(userId));
   }
 
   @override
@@ -36,8 +35,10 @@ class _MainShellState extends State<MainShell> {
       const TransactionsTab(),
       const ProfileTab(),
     ];
+    final userId = context.watch<AuthProvider>().user!.id;
     final unreadCount = context.select<AppProvider, int>(
-      (app) => app.notifications
+      (app) => app
+          .myNotifications(userId)
           .where((notification) => !notification.isRead)
           .length,
     );

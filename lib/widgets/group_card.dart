@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../utils/formatters.dart';
 
 class GroupCard extends StatelessWidget {
   final SavingsGroup group;

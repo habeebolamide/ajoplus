@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../utils/formatters.dart';
 import 'status_chip.dart';
 
 class TransactionTile extends StatelessWidget {

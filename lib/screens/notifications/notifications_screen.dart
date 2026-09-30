@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
+import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 
@@ -20,16 +20,18 @@ class NotificationsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
+    final userId = context.watch<AuthProvider>().user!.id;
+    final notifications = app.myNotifications(userId);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (app.notifications.isEmpty)
+        if (notifications.isEmpty)
           const EmptyState(
             icon: Icons.notifications_none,
             title: "You're all caught up",
             description: 'Reminders and group updates will appear here.',
           ),
-        ...app.notifications.map(
+        ...notifications.map(
           (row) => Card(
             child: ListTile(
               leading: Icon(

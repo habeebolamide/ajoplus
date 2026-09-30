@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
+import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../services/services.dart';
 import '../../widgets/common.dart';
@@ -17,6 +18,7 @@ class HomeTab extends StatelessWidget {
     final user = context.watch<AuthProvider>().user!;
     final app = context.watch<AppProvider>();
     final groups = app.myGroups(user.id);
+    final transactions = app.myTransactions(user.id);
     final ownContributions = app.contributions.where(
       (c) =>
           app.members.any((m) => m.id == c.memberId && m.userId == user.id) &&
@@ -161,13 +163,13 @@ class HomeTab extends StatelessWidget {
           ),
         ),
         const SectionTitle('Recent transactions'),
-        if (app.transactions.isEmpty)
+        if (transactions.isEmpty)
           const EmptyState(
             icon: Icons.receipt_long_outlined,
             title: 'No transactions yet',
             description: 'Your contributions and payouts will appear here.',
           ),
-        ...app.transactions.take(3).map((row) => TransactionTile(row)),
+        ...transactions.take(3).map((row) => TransactionTile(row)),
       ],
     );
   }
