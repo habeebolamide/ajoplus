@@ -1,3 +1,5 @@
+import '../services/api_data.dart';
+
 class AppNotification {
   final String id, userId, title, message, type;
   final DateTime createdAt;
@@ -11,6 +13,18 @@ class AppNotification {
     this.createdAt,
     this.isRead,
   );
+  factory AppNotification.fromApi(Object? raw) {
+    final data = ApiData.object(raw);
+    return AppNotification(
+      ApiData.id(data, 'id'),
+      ApiData.id(data, 'user_id'),
+      ApiData.string(data, 'title'),
+      ApiData.string(data, 'message'),
+      ApiData.string(data, 'type'),
+      ApiData.date(data, 'created_at'),
+      data['read_at'] != null,
+    );
+  }
   factory AppNotification.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
     return AppNotification(

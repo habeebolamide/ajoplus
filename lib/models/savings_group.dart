@@ -1,3 +1,6 @@
+import '../services/api_data.dart';
+import '../services/api_client.dart';
+
 class SavingsGroup {
   final String id, name, description, creatorId, frequency, inviteCode;
   final int contributionAmountKobo, maxMembers, currentCycle;
@@ -15,6 +18,23 @@ class SavingsGroup {
     required this.currentCycle,
     required this.createdAt,
   });
+  factory SavingsGroup.fromApi(Object? raw) {
+    final data = ApiData.object(raw);
+    final frequency = ApiData.oneOf(data, 'frequency', ['daily', 'weekly', 'biweekly', 'monthly']);
+    return SavingsGroup(
+      id: ApiData.id(data, 'id'),
+      name: ApiData.string(data, 'name'),
+      description: ApiData.optionalString(data, 'description'),
+      creatorId: ApiData.id(data, 'creator_id'),
+      contributionAmountKobo: ApiData.kobo(data, 'contribution_amount_kobo'),
+      frequency: '${frequency[0].toUpperCase()}${frequency.substring(1)}',
+      maxMembers: ApiData.integer(data, 'max_members'),
+      startDate: ApiData.date(data, 'start_date'),
+      inviteCode: ApiData.string(data, 'invite_code'),
+      currentCycle: ApiData.integer(data, 'current_cycle'),
+      createdAt: ApiData.date(data, 'created_at'),
+    );
+  }
   factory SavingsGroup.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
     return SavingsGroup(

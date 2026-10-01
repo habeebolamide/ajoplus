@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/providers.dart';
@@ -22,8 +20,20 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
+  }
+
+  Future<void> _load() async {
+    final app = context.read<AppProvider>();
     final userId = context.read<AuthProvider>().user!.id;
-    unawaited(context.read<AppProvider>().refreshReminders(userId));
+    try {
+      await app.refresh();
+      await app.refreshReminders(userId);
+    } catch (_) {
+      // AppProvider exposes the load error with a retry action below.
+    }
   }
 
   @override
@@ -36,6 +46,7 @@ class _MainShellState extends State<MainShell> {
       const ProfileTab(),
     ];
     final userId = context.watch<AuthProvider>().user!.id;
+    final app = context.watch<AppProvider>();
     final unreadCount = context.select<AppProvider, int>(
       (app) => app
           .myNotifications(userId)
@@ -65,7 +76,14 @@ class _MainShellState extends State<MainShell> {
               ]
             : null,
       ),
-      body: IndexedStack(index: index, children: screens),
+      body: app.loading && app.groups.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : app.loadError != null
+          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(app.loadError!),
+              TextButton(onPressed: _load, child: const Text('Retry')),
+            ]))
+          : RefreshIndicator(onRefresh: _load, child: IndexedStack(index: index, children: screens)),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (value) => setState(() => index = value),

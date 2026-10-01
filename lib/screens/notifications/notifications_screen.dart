@@ -48,7 +48,13 @@ class NotificationsTab extends StatelessWidget {
               subtitle: Text('${row.message}\n${shortDate(row.createdAt)}'),
               isThreeLine: true,
               trailing: row.isRead ? null : const Icon(Icons.circle, size: 9),
-              onTap: () => app.readNotification(row),
+              onTap: () async {
+                try {
+                  await app.readNotification(row);
+                } catch (error) {
+                  if (context.mounted) showError(context, error);
+                }
+              },
             ),
           ),
         ),

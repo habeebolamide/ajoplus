@@ -67,7 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Your account stays on this device.'),
+                const Text('Create an account to save with your groups.'),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: name,

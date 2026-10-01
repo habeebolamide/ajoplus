@@ -29,7 +29,7 @@ class ContributionsScreen extends StatelessWidget {
             detail:
                 '${rows.where((row) => row.status == 'Paid').length} of ${rows.length} paid',
           ),
-          if (own != null && own.status != 'Paid') ...[
+          if (own != null && own.status != 'Paid' && app.groupMembers(groupId).length == group.maxMembers) ...[
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: () => Navigator.push(
@@ -43,36 +43,21 @@ class ContributionsScreen extends StatelessWidget {
               label: const Text('Pay Contribution'),
             ),
           ],
-          const SectionTitle('Current cycle'),
+        const SectionTitle('Current cycle'),
+        if (rows.isEmpty)
+          const EmptyState(icon: Icons.payments_outlined, title: 'No contributions yet', description: 'Contributions will appear when members join.'),
           ...rows.map(
             (row) => Card(
               child: ListTile(
                 title: Text(row.memberName),
                 subtitle: Text(money(row.amountKobo)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StatusChip(row.status),
-                    if (row.status != 'Paid' && group.creatorId == user.id)
-                      IconButton(
-                        tooltip: 'Record demo payment',
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => PaymentScreen(
-                              groupId: groupId,
-                              contributionId: row.id,
-                            ),
-                          ),
-                        ),
-                        icon: const Icon(Icons.chevron_right),
-                      ),
-                  ],
-                ),
+                trailing: StatusChip(row.status),
               ),
             ),
           ),
           const SectionTitle('Contribution history'),
+          if (history.isEmpty)
+            const EmptyState(icon: Icons.history, title: 'No history yet', description: 'Past contributions will appear here.'),
           ...history.map(
             (row) => Card(
               child: ListTile(

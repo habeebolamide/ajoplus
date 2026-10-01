@@ -1,3 +1,5 @@
+import '../services/api_data.dart';
+
 class AppTransaction {
   final String id,
       groupId,
@@ -21,6 +23,24 @@ class AppTransaction {
     this.reference,
     this.createdAt,
   );
+  factory AppTransaction.fromApi(Object? raw, String memberName) {
+    final data = ApiData.object(raw);
+    final group = ApiData.object(data['group']);
+    final type = ApiData.oneOf(data, 'type', ['contribution', 'payout']);
+    final status = ApiData.oneOf(data, 'status', ['successful', 'failed', 'pending']);
+    return AppTransaction(
+      ApiData.id(data, 'id'),
+      ApiData.id(data, 'group_id'),
+      ApiData.id(data, 'member_id'),
+      memberName,
+      ApiData.string(group, 'name'),
+      '${type[0].toUpperCase()}${type.substring(1)}',
+      ApiData.kobo(data, 'amount_kobo'),
+      '${status[0].toUpperCase()}${status.substring(1)}',
+      ApiData.string(data, 'reference'),
+      ApiData.date(data, 'created_at'),
+    );
+  }
   factory AppTransaction.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
     return AppTransaction(

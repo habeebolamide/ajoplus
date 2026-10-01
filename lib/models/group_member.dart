@@ -1,3 +1,5 @@
+import '../services/api_data.dart';
+
 class GroupMember {
   final String id, groupId, userId, name;
   final int payoutPosition;
@@ -10,6 +12,18 @@ class GroupMember {
     this.payoutPosition,
     this.joinedAt,
   );
+  factory GroupMember.fromApi(Object? raw) {
+    final data = ApiData.object(raw);
+    final user = ApiData.object(data['user']);
+    return GroupMember(
+      ApiData.id(data, 'id'),
+      ApiData.id(data, 'group_id'),
+      ApiData.id(data, 'user_id'),
+      ApiData.string(user, 'name'),
+      ApiData.integer(data, 'payout_position'),
+      ApiData.date(data, 'joined_at'),
+    );
+  }
   factory GroupMember.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
     return GroupMember(

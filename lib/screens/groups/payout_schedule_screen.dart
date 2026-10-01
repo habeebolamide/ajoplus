@@ -13,7 +13,7 @@ class PayoutScheduleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final group = app.group(groupId);
-    final members = app.groupMembers(groupId);
+    final schedule = app.schedule.where((item) => item.groupId == groupId).toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Payout schedule')),
       body: ListView(
@@ -26,24 +26,18 @@ class PayoutScheduleScreen extends StatelessWidget {
           const SizedBox(height: 12),
           ...List.generate(group.maxMembers, (index) {
             final cycle = index + 1;
-            final recipient = GroupService.recipient(members, cycle);
-            final status =
-                app.payouts.any(
-                  (p) =>
-                      p.groupId == groupId &&
-                      p.cycle == cycle &&
-                      p.status == 'Completed',
-                )
-                ? 'Completed'
-                : cycle == group.currentCycle
-                ? 'Upcoming'
-                : 'Scheduled';
+            final entries = schedule.where((item) => item.cycle == cycle);
+            final entry = entries.isEmpty ? null : entries.first;
+            final status = entry?.status == 'completed' ? 'Completed'
+                : app.payouts.any((p) => p.groupId == groupId && p.cycle == cycle && p.status == 'Pending')
+                ? 'Pending settlement'
+                : cycle == group.currentCycle ? 'Upcoming' : 'Scheduled';
             return Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('$cycle')),
-                title: Text(recipient?.name ?? 'Awaiting member'),
+                title: Text(entry?.recipientName ?? 'Awaiting member'),
                 subtitle: Text(
-                  'Cycle $cycle · ${shortDate(GroupService.cycleDate(group, cycle))}',
+                  'Cycle $cycle · ${shortDate(entry?.scheduledFor ?? GroupService.cycleDate(group, cycle))}',
                 ),
                 trailing: StatusChip(status),
               ),

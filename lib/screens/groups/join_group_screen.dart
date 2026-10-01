@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
+import '../../models/group_preview.dart';
 import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
@@ -15,8 +15,9 @@ class JoinGroupScreen extends StatefulWidget {
 
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final code = TextEditingController();
-  SavingsGroup? found;
+  GroupPreview? found;
   bool joining = false;
+  bool searching = false;
 
   @override
   void dispose() {
@@ -24,15 +25,19 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     super.dispose();
   }
 
-  void search() {
+  Future<void> search() async {
     if (code.text.trim().isEmpty) {
       showInfo(context, 'Enter an invite code.');
       return;
     }
-    final result = context.read<AppProvider>().findInvite(code.text);
-    setState(() => found = result);
-    if (result == null) {
-      showInfo(context, 'No local group matches that invite code.');
+    setState(() { searching = true; found = null; });
+    try {
+      final result = await context.read<AppProvider>().lookup(code.text);
+      if (mounted) setState(() => found = result);
+    } catch (error) {
+      if (mounted) showError(context, error);
+    } finally {
+      if (mounted) setState(() => searching = false);
     }
   }
 
@@ -43,7 +48,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     final app = context.read<AppProvider>();
     final user = context.read<AuthProvider>().user!;
     try {
-      await app.join(group, user);
+      await app.join(code.text);
       await app.refreshReminders(user.id);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -60,16 +65,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppProvider>();
-    final user = context.watch<AuthProvider>().user!;
     final group = found;
-    final available = app.groups
-        .where(
-          (group) =>
-              !app.isMember(group.id, user.id) &&
-              app.groupMembers(group.id).length < group.maxMembers,
-        )
-        .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Join group')),
       body: ListView(
@@ -82,23 +78,22 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
-          const Text('Use an invite code from a group on this device.'),
+          const Text('Enter the invite code shared by a group organizer.'),
           const SizedBox(height: 20),
           TextField(
             controller: code,
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
               labelText: 'Invite code',
-              hintText: 'AJO-XXXXX',
               suffixIcon: IconButton(
-                onPressed: search,
+                onPressed: searching ? null : search,
                 icon: const Icon(Icons.search),
               ),
             ),
             onSubmitted: (_) => search(),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: search, child: const Text('Find Group')),
+          FilledButton(onPressed: searching ? null : search, child: Text(searching ? 'Finding…' : 'Find Group')),
           if (group != null) ...[
             const SectionTitle('Group details'),
             Card(
@@ -115,16 +110,13 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                     Text(group.description),
                     const SizedBox(height: 10),
                     Text(
-                      'Organizer: ${group.creatorId == 'demo' ? 'Habeeblah Adenubi' : 'Local organizer'}',
+                      'Contribution: ${money(group.amountKobo)} · ${group.frequency}',
                     ),
                     Text(
-                      'Contribution: ${money(group.contributionAmountKobo)} · ${group.frequency}',
+                      'Members: ${group.membersCount}/${group.maxMembers}',
                     ),
                     Text(
-                      'Members: ${app.groupMembers(group.id).length}/${group.maxMembers}',
-                    ),
-                    Text(
-                      'Available slots: ${group.maxMembers - app.groupMembers(group.id).length}',
+                      'Available slots: ${group.maxMembers - group.membersCount}',
                     ),
                     Text('Starts: ${shortDate(group.startDate)}'),
                     const SizedBox(height: 16),
@@ -137,22 +129,6 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               ),
             ),
           ],
-          const SectionTitle('Available on this device'),
-          ...available.map(
-            (group) => Card(
-              child: ListTile(
-                title: Text(group.name),
-                subtitle: Text(
-                  '${money(group.contributionAmountKobo)} · ${group.frequency} · ${app.groupMembers(group.id).length}/${group.maxMembers} members',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  code.text = group.inviteCode;
-                  setState(() => found = group);
-                },
-              ),
-            ),
-          ),
         ],
       ),
     );

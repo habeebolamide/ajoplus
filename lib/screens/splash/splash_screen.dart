@@ -14,10 +14,16 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Object? error;
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 550), () {
+    _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      await context.read<AuthProvider>().restore();
       if (!mounted) return;
       final auth = context.read<AuthProvider>();
       final onboarded = StorageService.prefs.getBool('onboarded') ?? false;
@@ -30,7 +36,9 @@ class _SplashScreenState extends State<SplashScreen> {
               : const MainShell(),
         ),
       );
-    });
+    } catch (caught) {
+      if (mounted) setState(() => error = caught);
+    }
   }
 
   @override
@@ -51,6 +59,14 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 8),
             const Text('Save together. Grow together.'),
+            if (error == null) ...[
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(),
+            ] else ...[
+              const SizedBox(height: 24),
+              const Text('Could not connect to AjoPlus. Check your connection and retry.'),
+              TextButton(onPressed: () { setState(() => error = null); _start(); }, child: const Text('Retry')),
+            ],
           ],
         ),
       ),

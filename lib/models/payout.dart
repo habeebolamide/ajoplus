@@ -1,3 +1,5 @@
+import '../services/api_data.dart';
+
 class Payout {
   final String id, groupId, memberId, status;
   final int cycle, amountKobo;
@@ -13,6 +15,20 @@ class Payout {
     this.status,
     this.completedAt,
   );
+  factory Payout.fromApi(Object? raw) {
+    final data = ApiData.object(raw);
+    final status = ApiData.oneOf(data, 'status', ['pending', 'completed']);
+    return Payout(
+      ApiData.id(data, 'id'),
+      ApiData.id(data, 'group_id'),
+      ApiData.id(data, 'member_id'),
+      ApiData.integer(data, 'cycle'),
+      ApiData.kobo(data, 'amount_kobo'),
+      ApiData.date(data, 'scheduled_for'),
+      '${status[0].toUpperCase()}${status.substring(1)}',
+      ApiData.optionalDate(data, 'completed_at'),
+    );
+  }
   factory Payout.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
     final completedAt = m['completedAt'] as String?;

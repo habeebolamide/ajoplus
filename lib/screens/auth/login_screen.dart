@@ -109,16 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text('Create an account'),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Text(
-                        'Demo login: demo@ajoplus.local / password123',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

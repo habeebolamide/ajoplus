@@ -55,7 +55,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         user: user,
         name: name.text,
         description: description.text,
-        amountKobo: int.parse(amount.text) * 100,
+        amountKobo: parseNairaToKobo(amount.text)!,
         frequency: frequency,
         maxMembers: int.parse(members.text),
         startDate: startDate!,
@@ -96,7 +96,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Invite members on this device with the code created for your group.',
+              'Invite members with the code created for your group.',
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -121,9 +121,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 labelText: 'Contribution amount',
                 prefixText: '₦',
               ),
-              keyboardType: TextInputType.number,
-              validator: (value) => (int.tryParse(value ?? '') ?? 0) <= 0
-                  ? 'Enter an amount above zero'
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: (value) => parseNairaToKobo(value ?? '') == null
+                  ? 'Enter a valid amount in naira (up to 2 decimal places)'
                   : null,
             ),
             const SizedBox(height: 14),
@@ -143,8 +143,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               controller: members,
               decoration: const InputDecoration(labelText: 'Number of members'),
               keyboardType: TextInputType.number,
-              validator: (value) => (int.tryParse(value ?? '') ?? 0) < 2
-                  ? 'Choose at least 2 members'
+              validator: (value) => (int.tryParse(value ?? '') ?? 0) < 2 || (int.tryParse(value ?? '') ?? 0) > 100
+                  ? 'Choose 2 to 100 members'
                   : null,
             ),
             const SizedBox(height: 14),

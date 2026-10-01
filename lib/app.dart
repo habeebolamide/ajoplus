@@ -10,7 +10,9 @@ class AjoPlusApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>().mode;
+    final generation = context.watch<AuthProvider>().sessionGeneration;
     return MaterialApp(
+      key: ValueKey(generation),
       title: 'AjoPlus',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.createTheme(Brightness.light),

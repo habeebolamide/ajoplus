@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
 import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
-import '../../services/services.dart';
 import '../../widgets/common.dart';
 import '../../widgets/transaction_tile.dart';
 import '../groups/create_group_screen.dart';
@@ -28,29 +26,12 @@ class HomeTab extends StatelessWidget {
       0,
       (sum, row) => sum + row.amountKobo,
     );
-    final upcoming =
-        groups.where((g) => g.currentCycle <= g.maxMembers).toList()..sort(
-          (a, b) => GroupService.cycleDate(
-            a,
-            a.currentCycle,
-          ).compareTo(GroupService.cycleDate(b, b.currentCycle)),
-        );
     final nextContribution = app.nextContribution(user.id, DateTime.now());
-    final payoutTurns = <MapEntry<SavingsGroup, int>>[];
-    for (final group in upcoming) {
-      for (var cycle = group.currentCycle; cycle <= group.maxMembers; cycle++) {
-        if (app.recipient(group, cycle)?.userId == user.id) {
-          payoutTurns.add(MapEntry(group, cycle));
-        }
-      }
-    }
-    payoutTurns.sort(
-      (a, b) => GroupService.cycleDate(
-        a.key,
-        a.value,
-      ).compareTo(GroupService.cycleDate(b.key, b.value)),
-    );
-    final nextPayout = payoutTurns.isEmpty ? null : payoutTurns.first;
+    final payoutTurns = app.schedule.where((entry) =>
+        entry.recipientId == user.id && entry.status != 'completed' &&
+        groups.any((group) => group.id == entry.groupId && entry.cycle >= group.currentCycle)).toList()
+      ..sort((a, b) => a.scheduledFor.compareTo(b.scheduledFor));
+    final nextPayout = payoutTurns.firstOrNull;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -97,15 +78,10 @@ class HomeTab extends StatelessWidget {
                     'Next Payout',
                     nextPayout == null
                         ? '—'
-                        : money(app.expected(nextPayout.key)),
+                        : money(nextPayout.amountKobo),
                     detail: nextPayout == null
                         ? null
-                        : shortDate(
-                            GroupService.cycleDate(
-                              nextPayout.key,
-                              nextPayout.value,
-                            ),
-                          ),
+                        : shortDate(nextPayout.scheduledFor),
                   ),
                 ),
               ],

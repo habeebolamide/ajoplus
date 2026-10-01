@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
-import '../auth/login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -43,12 +42,11 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
             onTap: () async {
-              await context.read<AuthProvider>().logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-                (_) => false,
-              );
+              try {
+                await context.read<AuthProvider>().logout();
+              } catch (error) {
+                if (context.mounted) showError(context, error);
+              }
             },
           ),
         ],

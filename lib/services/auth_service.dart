@@ -1,14 +1,20 @@
-import '../models/models.dart';
-import '../utils/id.dart';
-import 'password_hash.dart';
-import 'storage_service.dart';
+import '../models/app_user.dart';
+import 'api_client.dart';
+import 'api_data.dart';
 
 class AuthService {
-  AppUser? get active {
-    final id = StorageService.prefs.getString('session');
-    if (id == null) return null;
-    final storedUser = StorageService.users.get(id);
-    return storedUser == null ? null : AppUser.from(storedUser);
+  final ApiClient api;
+  AuthService(this.api);
+
+  Future<AppUser?> restore() async {
+    await api.restore();
+    if (!api.hasSession) return null;
+    try {
+      return AppUser.fromApi(ApiData.object(await api.get('auth/me'))['user']);
+    } on ApiException catch (error) {
+      if (error.statusCode == 401) return null;
+      rethrow;
+    }
   }
 
   Future<AppUser> register(
@@ -17,53 +23,31 @@ class AuthService {
     String phone,
     String password,
   ) async {
-    final normalized = email.trim().toLowerCase();
-    if (StorageService.read(
-      StorageService.users,
-      AppUser.from,
-    ).any((u) => u.email.toLowerCase() == normalized)) {
-      throw StateError('An account already uses this email.');
-    }
-    final user = AppUser(
-      newId(),
-      name.trim(),
-      normalized,
-      phone.trim(),
-      DateTime.now(),
-    );
-    await StorageService.users.put(user.id, {
-      ...user.toMap(),
-      'passwordHash': await hashPassword(password),
-    });
-    await StorageService.prefs.setString('session', user.id);
+    final response = ApiData.object(await api.request('POST', 'auth/register', authenticated: false, body: {
+      'name': name.trim(),
+      'email': email.trim().toLowerCase(),
+      'phone': phone.trim(),
+      'password': password,
+      'password_confirmation': password,
+    }));
+    final user = AppUser.fromApi(response['user']);
+    await api.setSession(response);
     return user;
   }
 
   Future<AppUser> login(String email, String password) async {
-    final normalized = email.trim().toLowerCase();
-    for (final raw in StorageService.users.values) {
-      final user = AppUser.from(raw);
-      if (user.email.toLowerCase() != normalized) continue;
-
-      final stored = Map<String, Object?>.from(raw as Map);
-      final hash = stored['passwordHash'] as String?;
-      final legacyPassword = stored['password'] as String?;
-      final matches = hash != null
-          ? await verifyPassword(password, hash)
-          : legacyPassword == password;
-      if (!matches) break;
-
-      if (hash == null) {
-        await StorageService.users.put(user.id, {
-          ...user.toMap(),
-          'passwordHash': await hashPassword(password),
-        });
-      }
-      await StorageService.prefs.setString('session', user.id);
-      return user;
-    }
-    throw StateError('Email or password is incorrect.');
+    final response = ApiData.object(await api.request('POST', 'auth/login', authenticated: false, body: {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    }));
+    final user = AppUser.fromApi(response['user']);
+    await api.setSession(response);
+    return user;
   }
 
-  Future<void> logout() => StorageService.prefs.remove('session');
+  Future<void> logout() async {
+    final refresh = await api.credentials.refresh;
+    if (refresh != null) await api.post('auth/logout', {'refresh_token': refresh});
+    await api.clearSession();
+  }
 }
