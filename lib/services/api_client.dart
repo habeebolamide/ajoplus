@@ -237,12 +237,6 @@ class ApiClient {
         429,
       );
     }
-    if (response.statusCode == 503) {
-      throw const ApiException(
-        'The service is temporarily unavailable. Please retry.',
-        503,
-      );
-    }
     final message = json is Map ? json['message'] : null;
     if (response.statusCode == 422 && json is Map && json['errors'] is Map) {
       final errors = json['errors'] as Map;

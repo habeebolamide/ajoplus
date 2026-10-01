@@ -39,8 +39,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           : group.currentCycle,
     );
     final payoutDates = app.schedule.where(
-      (entry) =>
-          entry.groupId == group.id && entry.cycle == group.currentCycle,
+      (entry) => entry.groupId == group.id && entry.cycle == group.currentCycle,
     );
     final nextPayoutDate = payoutDates.isEmpty
         ? GroupService.cycleDate(group, group.currentCycle)
@@ -107,10 +106,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                   ),
                 ),
                 Expanded(
-                  child: MetricCard(
-                    'Next payout',
-                    shortDate(nextPayoutDate),
-                  ),
+                  child: MetricCard('Next payout', shortDate(nextPayoutDate)),
                 ),
               ],
             ),
