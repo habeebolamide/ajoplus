@@ -21,6 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final confirmation = TextEditingController();
   bool passwordHidden = true;
   bool confirmationHidden = true;
+  String? formError;
 
   @override
   void dispose() {
@@ -32,6 +33,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> submit() async {
     if (!form.currentState!.validate()) return;
+    setState(() => formError = null);
     try {
       await context.read<AuthProvider>().register(
         name.text,
@@ -45,7 +47,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         (_) => false,
       );
     } catch (error) {
-      if (mounted) showError(context, error);
+      if (mounted) setState(() => formError = feedbackMessage(error));
     }
   }
 
@@ -70,6 +72,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text('Create an account to save with your groups.'),
+                if (formError != null) ...[
+                  const SizedBox(height: 20),
+                  InlineFormError(message: formError!),
+                ],
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: name,

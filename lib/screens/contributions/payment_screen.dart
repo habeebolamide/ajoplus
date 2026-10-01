@@ -75,15 +75,21 @@ class _PaymentScreenState extends State<PaymentScreen>
         showInfo(
           context,
           'Payment verified. Reference: ${verified.paymentReference}',
+          kind: FeedbackKind.success,
         );
         Navigator.pop(context);
       } else if (verified.status == 'Failed') {
         setState(() => checkoutOpened = false);
-        showInfo(context, 'Payment failed. You can retry checkout.');
+        showInfo(
+          context,
+          'Payment failed. You can retry checkout.',
+          kind: FeedbackKind.error,
+        );
       } else {
         showInfo(
           context,
           'Payment is still pending. Check again after completing checkout.',
+          kind: FeedbackKind.warning,
         );
       }
     } catch (error) {

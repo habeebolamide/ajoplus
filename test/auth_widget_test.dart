@@ -5,6 +5,7 @@ import 'package:ajoplus/screens/auth/login_screen.dart';
 import 'package:ajoplus/screens/auth/signup_screen.dart';
 import 'package:ajoplus/services/api_client.dart';
 import 'package:ajoplus/services/storage_service.dart';
+import 'package:ajoplus/widgets/feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -58,6 +59,68 @@ void main() {
       tester.widget<EditableText>(find.byType(EditableText).at(4)).obscureText,
       isFalse,
     );
+  });
+
+  testWidgets('sign-in errors appear at the top of the form', (tester) async {
+    final api = ApiClient(
+      baseUri: Uri.parse('https://example.com/api/v1/'),
+      credentials: MemoryCredentials(),
+      httpClient: MockClient(
+        (_) async => http.Response(
+          jsonEncode({'message': 'These credentials are incorrect.'}),
+          422,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthProvider(api: api),
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'ada@example.com');
+    await tester.enterText(find.byType(TextFormField).at(1), 'wrong-password');
+    await tester.tap(find.text('Sign In'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('These credentials are incorrect.'), findsOneWidget);
+    expect(find.byType(InlineFormError), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('error snackbars use the danger color and floating style', (
+    tester,
+  ) async {
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+    );
+    late Color errorColor;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              errorColor = Theme.of(context).colorScheme.error;
+              return TextButton(
+                onPressed: () =>
+                    showError(context, const ApiException('Payment failed.')),
+                child: const Text('Show error'),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Show error'));
+    await tester.pump();
+
+    final snackbar = tester.widget<SnackBar>(find.byType(SnackBar));
+    expect(snackbar.backgroundColor, errorColor);
+    expect(snackbar.behavior, SnackBarBehavior.floating);
+    expect(find.byIcon(Icons.error_rounded), findsOneWidget);
   });
 
   testWidgets('sign in loads the real API dashboard without demo content', (

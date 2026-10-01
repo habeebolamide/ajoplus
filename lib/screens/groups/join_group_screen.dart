@@ -27,7 +27,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   Future<void> search() async {
     if (code.text.trim().isEmpty) {
-      showInfo(context, 'Enter an invite code.');
+      showInfo(context, 'Enter an invite code.', kind: FeedbackKind.warning);
       return;
     }
     setState(() {

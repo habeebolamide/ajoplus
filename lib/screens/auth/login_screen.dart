@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final email = TextEditingController();
   final password = TextEditingController();
   bool hidden = true;
+  String? formError;
 
   @override
   void dispose() {
@@ -28,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> submit() async {
     if (!form.currentState!.validate()) return;
+    setState(() => formError = null);
     try {
       await context.read<AuthProvider>().login(email.text, password.text);
       if (!mounted) return;
@@ -36,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         (_) => false,
       );
     } catch (error) {
-      if (mounted) showError(context, error);
+      if (mounted) setState(() => formError = feedbackMessage(error));
     }
   }
 
@@ -67,6 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text('Sign in to follow your savings groups.'),
+                  if (formError != null) ...[
+                    const SizedBox(height: 20),
+                    InlineFormError(message: formError!),
+                  ],
                   const SizedBox(height: 28),
                   TextFormField(
                     controller: email,

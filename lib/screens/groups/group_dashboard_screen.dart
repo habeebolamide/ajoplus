@@ -199,7 +199,13 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
     setState(() => saving = true);
     try {
       await app.preparePayout(group);
-      if (mounted) showInfo(context, 'Payout is pending manual settlement.');
+      if (mounted) {
+        showInfo(
+          context,
+          'Payout is pending manual settlement.',
+          kind: FeedbackKind.warning,
+        );
+      }
     } catch (error) {
       if (mounted) showError(context, error);
     } finally {
@@ -240,7 +246,13 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
     setState(() => saving = true);
     try {
       await app.settlePayout(group, reference);
-      if (mounted) showInfo(context, 'Manual settlement recorded.');
+      if (mounted) {
+        showInfo(
+          context,
+          'Manual settlement recorded.',
+          kind: FeedbackKind.success,
+        );
+      }
     } catch (error) {
       if (mounted) showError(context, error);
     } finally {

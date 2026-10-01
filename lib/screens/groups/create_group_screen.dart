@@ -44,7 +44,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   Future<void> submit() async {
     if (!form.currentState!.validate()) return;
     if (startDate == null) {
-      showInfo(context, 'Choose a start date.');
+      showInfo(context, 'Choose a start date.', kind: FeedbackKind.warning);
       return;
     }
     setState(() => saving = true);
@@ -65,6 +65,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       showInfo(
         context,
         'Group created. Share invite code ${group.inviteCode}.',
+        kind: FeedbackKind.success,
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
