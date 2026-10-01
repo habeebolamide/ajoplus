@@ -26,7 +26,11 @@ class GroupCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(child: Text(group.name.characters.first)),
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .1),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  child: Text(group.name.characters.first.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
