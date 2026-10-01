@@ -5,18 +5,10 @@ AjoPlus is a Flutter client for Nigerian rotating savings groups. Accounts, grou
 ## Setup
 
 1. Start the Laravel backend in `/Users/mac/Sites/ajoplus-backend` and apply its migrations.
-2. Run `flutter pub get`.
-3. Run the app with a backend URL ending in `/api/v1/`:
+2. Set the backend URL in [`lib/config/api_config.dart`](lib/config/api_config.dart). Keep the URL ending in `/api/v1/`.
+3. Run `flutter pub get`, then launch the app normally from your IDE or with `flutter run`. You can override the file URL per build with `--dart-define=API_BASE_URL=https://your-api.example/api/v1/`.
 
-```sh
-# iOS simulator
-flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1/
-
-# Android emulator
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1/
-```
-
-Use an HTTPS API URL on physical devices and in release builds. Android permits local HTTP only in debug builds. The release client rejects HTTP and invalid API URLs. Never put a Paystack key or MySQL credential in the Flutter project or a `--dart-define` value.
+The default is `http://ajoplus-backend.test/api/v1/`, suitable when the local `.test` domain resolves from the simulator/device. If you use `php artisan serve`, set `http://127.0.0.1:8000/api/v1/` for the iOS simulator or `http://10.0.2.2:8000/api/v1/` for the Android emulator. Use an HTTPS URL for physical devices and release builds. The app permits HTTP only in debug builds. Never put a Paystack key or MySQL credential in the Flutter project.
 
 ## Payments and payouts
 
