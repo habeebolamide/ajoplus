@@ -1,107 +1,48 @@
-# AjoPlus Mobile App
+# AjoPlus mobile
 
-AjoPlus is a Flutter application for managing Nigerian **ajo/esusu** rotating-savings groups. It lets members create and join groups, track contributions, follow payout rotations, review activity, and receive contribution reminders.
+AjoPlus is a Flutter client for Nigerian rotating savings groups. Accounts, groups, contributions, payout schedules, transactions, and in-app notifications come from the companion Laravel API. Money is transferred as integer kobo in API requests and responses; the UI formats naira for display.
 
-This repository contains the mobile client. The companion Laravel API is maintained separately.
+## Setup
 
-> **Current status:** the app is an offline demo. Data, authentication, and payment outcomes are stored or simulated locally; it does not yet call the backend or move real money.
-
-Monetary records are stored as integer kobo. Naira formatting happens only in the UI. Existing local Hive records are migrated on startup.
-
-## Features
-
-- Local sign-up, sign-in, session restore, and onboarding
-- Create or join rotating-savings groups using invite codes
-- Daily, weekly, biweekly, and monthly contribution schedules
-- Calendar-based due dates: daily today, weekly on Monday, and monthly on the first day of the month
-- Contribution tracking, simulated payment results, payouts, and transaction history
-- In-app and device reminder support where the platform permits it
-- Light, dark, and system theme settings
-
-## Tech stack
-
-- [Flutter](https://flutter.dev/) and Dart
-- Provider for application state
-- Hive for on-device records
-- SharedPreferences for small device settings and session state
-- `flutter_local_notifications` for reminder scheduling
-- `cryptography` for salted local password hashes
-
-## Prerequisites
-
-- Flutter SDK compatible with Dart `^3.11.0`
-- Xcode for iOS builds and/or Android Studio with an Android SDK for Android builds
-
-## Getting started
+1. Start the Laravel backend in `/Users/mac/Sites/ajoplus-backend` and apply its migrations.
+2. Run `flutter pub get`.
+3. Run the app with a backend URL ending in `/api/v1/`:
 
 ```sh
-git clone https://github.com/habeebolamide/ajoplus.git
-cd ajoplus
-flutter pub get
-flutter run
+# iOS simulator
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1/
+
+# Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1/
 ```
 
-Run code-quality checks with:
+Use an HTTPS API URL on physical devices and in release builds. Android permits local HTTP only in debug builds. The release client rejects HTTP and invalid API URLs. Never put a Paystack key or MySQL credential in the Flutter project or a `--dart-define` value.
 
-```sh
-flutter analyze
-flutter test
-```
+## Payments and payouts
 
-## Demo data
+The app requests a Paystack test checkout from Laravel, opens the hosted checkout in the device browser, and asks Laravel to verify the outcome when the app resumes or the user taps **Check payment status**. A contribution becomes paid only after the backend verifies Paystack's reference, amount in kobo, currency, customer, and test domain. The backend also accepts signed Paystack webhooks. Paystack's test secret belongs only in the backend `.env`.
 
-On the first launch, AjoPlus creates local demo data. Sign in with:
+Once every member has paid, the organizer can prepare a payout. It remains **pending** until the organizer records an external transfer reference after manually settling the recipient. This records the organizer's statement; the app does not initiate a bank transfer.
+
+## Data and security
+
+- Sanctum access and rotating refresh tokens are held in platform secure storage. Unauthorized responses trigger one refresh and one retry; an invalid refresh signs the user out.
+- The app does not store group or account data in Hive. On the first upgraded launch, it clears all legacy Hive boxes, including old local users and demo records.
+- SharedPreferences holds only device preferences such as theme, onboarding, and reminder choice.
+- GET requests retry transient failures. Writes are not automatically repeated. Loading, empty, validation, timeout, network, and malformed-response states are handled at the UI or API boundary.
+
+## Structure
 
 ```text
-Email:    demo@ajoplus.local
-Password: password123
+lib/models/       Typed API/domain records
+lib/providers/    Shared account and group state
+lib/screens/      Feature screens
+lib/services/     Authenticated API, parsing, reminders, local preferences
+lib/widgets/      Reusable UI
+lib/utils/        Money formatting and form validation
+test/             API and widget integration tests
 ```
 
-Demo records are seeded once by `StorageService` and persisted in local Hive boxes. Existing plaintext demo credentials are migrated to password hashes on startup. To generate fresh demo data, clear the app's local data or reinstall it.
+The Flutter coding standard is [`.codex/skills/anti-slop-flutter/SKILL.md`](.codex/skills/anti-slop-flutter/SKILL.md). [`AGENTS.md`](AGENTS.md) instructs future sessions to read it.
 
-The app uses sample groups such as **Campus Savers**, **Market Circle**, and **Family Goals**. All payments are simulated and are safe to explore.
-
-## Project structure
-
-```text
-lib/
-  config/       Theme and app configuration
-  models/       Persisted domain models
-  providers/    Application state and group workflows
-  screens/      Feature-organized Flutter screens
-  services/     Local persistence, auth, payments, reminders, and scheduling
-  widgets/      Reusable UI components
-  utils/        Formatting, validation, and identifier helpers
-test/           Unit and widget tests
-```
-
-## Coding standard
-
-The complete Flutter Anti-Slop skill is installed at [`.codex/skills/anti-slop-flutter/SKILL.md`](.codex/skills/anti-slop-flutter/SKILL.md). Future Codex sessions should read it before Flutter or Dart changes; [`AGENTS.md`](AGENTS.md) makes that requirement explicit for this repository.
-
-## Contribution scheduling
-
-Contribution due dates are derived from the selected frequency rather than the date demo data was first created:
-
-| Frequency | Due date |
-| --- | --- |
-| Daily | Today; tomorrow after today's contribution is paid |
-| Weekly | Monday; the following Monday after a Monday contribution is paid |
-| Biweekly | Every 14 days from the selected group start date |
-| Monthly | The first of the month; the following first after that payment is paid |
-
-Payout progression still requires the group organizer to complete a cycle once every member has paid.
-
-## Backend integration
-
-The companion Laravel API is a separate project. This Flutter demo does not yet call it. Keep API URLs, secrets, tokens, and payment-provider credentials out of this repository. Use local environment files (for example, `.env`) that are ignored by Git.
-
-## Security and data handling
-
-- Do not commit `.env` files, signing keys, certificates, or service-account credentials.
-- Do not treat the demo authentication or simulated payments as production-ready.
-- Replace local-only authentication and payment simulation with audited backend integrations before production use.
-
-## License
-
-No license has been selected yet. Add a `LICENSE` file before distributing or accepting external contributions.
+Run `flutter analyze` and `flutter test` before merging changes. A real Paystack checkout requires a configured Paystack test account and an accessible backend webhook URL.
