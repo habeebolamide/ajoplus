@@ -5,12 +5,25 @@ class GroupPreview {
   final int amountKobo, maxMembers, membersCount;
   final DateTime startDate;
 
-  const GroupPreview(this.id, this.name, this.description, this.frequency,
-      this.amountKobo, this.maxMembers, this.membersCount, this.startDate);
+  const GroupPreview(
+    this.id,
+    this.name,
+    this.description,
+    this.frequency,
+    this.amountKobo,
+    this.maxMembers,
+    this.membersCount,
+    this.startDate,
+  );
 
   factory GroupPreview.fromApi(Object? raw) {
     final data = ApiData.object(raw);
-    final frequency = ApiData.oneOf(data, 'frequency', ['daily', 'weekly', 'biweekly', 'monthly']);
+    final frequency = ApiData.oneOf(data, 'frequency', [
+      'daily',
+      'weekly',
+      'biweekly',
+      'monthly',
+    ]);
     return GroupPreview(
       ApiData.id(data, 'id'),
       ApiData.string(data, 'name'),

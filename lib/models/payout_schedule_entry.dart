@@ -6,8 +6,15 @@ class PayoutScheduleEntry {
   final String recipientId, recipientName, status;
   final DateTime scheduledFor;
 
-  const PayoutScheduleEntry(this.groupId, this.cycle, this.amountKobo,
-      this.recipientId, this.recipientName, this.status, this.scheduledFor);
+  const PayoutScheduleEntry(
+    this.groupId,
+    this.cycle,
+    this.amountKobo,
+    this.recipientId,
+    this.recipientName,
+    this.status,
+    this.scheduledFor,
+  );
 
   factory PayoutScheduleEntry.fromApi(String groupId, Object? raw) {
     final data = ApiData.object(raw);

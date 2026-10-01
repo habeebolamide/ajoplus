@@ -27,7 +27,11 @@ class AppTransaction {
     final data = ApiData.object(raw);
     final group = ApiData.object(data['group']);
     final type = ApiData.oneOf(data, 'type', ['contribution', 'payout']);
-    final status = ApiData.oneOf(data, 'status', ['successful', 'failed', 'pending']);
+    final status = ApiData.oneOf(data, 'status', [
+      'successful',
+      'failed',
+      'pending',
+    ]);
     return AppTransaction(
       ApiData.id(data, 'id'),
       ApiData.id(data, 'group_id'),

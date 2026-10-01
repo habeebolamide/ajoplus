@@ -9,7 +9,8 @@ class AuthProvider extends ChangeNotifier {
   bool busy = false;
   int sessionGeneration = 0;
   VoidCallback? onSignedOut;
-  AuthProvider({required ApiClient api, AuthService? service}) : service = service ?? AuthService(api) {
+  AuthProvider({required ApiClient api, AuthService? service})
+    : service = service ?? AuthService(api) {
     api.onUnauthorized = () {
       user = null;
       onSignedOut?.call();
@@ -27,6 +28,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<void> register(
     String name,
     String email,

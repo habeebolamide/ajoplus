@@ -1,5 +1,4 @@
 import '../services/api_data.dart';
-import '../services/api_client.dart';
 
 class SavingsGroup {
   final String id, name, description, creatorId, frequency, inviteCode;
@@ -20,7 +19,12 @@ class SavingsGroup {
   });
   factory SavingsGroup.fromApi(Object? raw) {
     final data = ApiData.object(raw);
-    final frequency = ApiData.oneOf(data, 'frequency', ['daily', 'weekly', 'biweekly', 'monthly']);
+    final frequency = ApiData.oneOf(data, 'frequency', [
+      'daily',
+      'weekly',
+      'biweekly',
+      'monthly',
+    ]);
     return SavingsGroup(
       id: ApiData.id(data, 'id'),
       name: ApiData.string(data, 'name'),

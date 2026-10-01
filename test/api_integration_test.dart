@@ -22,6 +22,7 @@ class MemoryCredentials extends CredentialStore {
     accessToken = access;
     refreshToken = refresh;
   }
+
   @override
   Future<void> clear() async {
     accessToken = null;
@@ -49,24 +50,34 @@ final group = {
   'current_cycle': 1,
   'created_at': '2026-09-30T12:00:00.000000Z',
 };
-http.Response jsonResponse(Object data, [int status = 200]) =>
-    http.Response(jsonEncode(data), status, headers: {'content-type': 'application/json'});
+http.Response jsonResponse(Object data, [int status = 200]) => http.Response(
+  jsonEncode(data),
+  status,
+  headers: {'content-type': 'application/json'},
+);
 Map<String, Object?> page(List<Object?> data) => {'data': data, 'last_page': 1};
 
 void main() {
   test('expired access token rotates and retries once', () async {
     final calls = <String>[];
-    final credentials = MemoryCredentials(accessToken: 'old', refreshToken: 'refresh');
+    final credentials = MemoryCredentials(
+      accessToken: 'old',
+      refreshToken: 'refresh',
+    );
     final api = ApiClient(
       baseUri: Uri.parse('https://example.com/api/v1/'),
       credentials: credentials,
       httpClient: MockClient((request) async {
-        calls.add('${request.url.path}:${request.headers['Authorization'] ?? ''}');
+        calls.add(
+          '${request.url.path}:${request.headers['Authorization'] ?? ''}',
+        );
         if (request.url.path.endsWith('auth/refresh')) {
           expect(jsonDecode(request.body)['refresh_token'], 'refresh');
           return jsonResponse({'token': 'new', 'refresh_token': 'new-refresh'});
         }
-        if (request.headers['Authorization'] == 'Bearer old') return jsonResponse({'message': 'Unauthenticated.'}, 401);
+        if (request.headers['Authorization'] == 'Bearer old') {
+          return jsonResponse({'message': 'Unauthenticated.'}, 401);
+        }
         return jsonResponse({'user': user});
       }),
     );
@@ -79,9 +90,17 @@ void main() {
   });
 
   test('invalid refresh clears credentials and signals sign out', () async {
-    final credentials = MemoryCredentials(accessToken: 'old', refreshToken: 'expired');
-    final api = ApiClient(baseUri: Uri.parse('https://example.com/api/v1/'), credentials: credentials,
-      httpClient: MockClient((request) async => jsonResponse({'message': 'Unauthenticated.'}, 401)));
+    final credentials = MemoryCredentials(
+      accessToken: 'old',
+      refreshToken: 'expired',
+    );
+    final api = ApiClient(
+      baseUri: Uri.parse('https://example.com/api/v1/'),
+      credentials: credentials,
+      httpClient: MockClient(
+        (request) async => jsonResponse({'message': 'Unauthenticated.'}, 401),
+      ),
+    );
     await api.restore();
     var signedOut = false;
     api.onUnauthorized = () => signedOut = true;
@@ -91,46 +110,124 @@ void main() {
     expect(credentials.refreshToken, isNull);
   });
 
-  test('group data and kobo amounts come from paginated API responses', () async {
-    final calls = <String>[];
-    final api = ApiClient(baseUri: Uri.parse('https://example.com/api/v1/'),
-      httpClient: MockClient((request) async {
-        calls.add(request.url.path);
-        final path = request.url.path;
-        if (path.endsWith('/groups')) return jsonResponse(page([group]));
-        if (path.endsWith('/groups/3')) return jsonResponse({
-          ...group,
-          'members': [{
-            'id': 11, 'group_id': 3, 'user_id': 7, 'payout_position': 1,
-            'joined_at': '2026-09-30T12:00:00.000000Z',
-            'user': {'id': 7, 'name': 'Ada Okafor'},
-          }],
-          'payouts': [],
-        });
-        if (path.endsWith('/groups/3/contributions')) return jsonResponse(page([{
-          'id': 21, 'group_id': 3, 'member_id': 11, 'cycle': 1,
-          'amount_kobo': 125050, 'status': 'pending', 'payment_reference': null,
-          'paid_at': null,
-        }]));
-        if (path.endsWith('/groups/3/schedule')) return jsonResponse({'data': [{
-          'cycle': 1, 'recipient': {'id': 7, 'name': 'Ada Okafor'},
-          'scheduled_for': '2026-10-01', 'amount_kobo': 250100, 'status': 'pending',
-        }]});
-        if (path.endsWith('/transactions') || path.endsWith('/notifications')) return jsonResponse(page([]));
-        return jsonResponse({'message': 'Not found'}, 404);
-      }));
-    final app = AppProvider(api: api);
-    await app.refresh();
-    expect(app.groups.single.name, 'Savings circle');
-    expect(app.ownContribution(app.groups.single, '7')!.amountKobo, 125050);
-    expect(app.nextContribution('7', DateTime(2026, 9, 30))!.dueDate, DateTime(2026, 10, 1));
-    expect(calls, contains('/api/v1/groups/3/contributions'));
-    expect(app.loadError, isNull);
-    app.dispose();
-  });
+  test(
+    'logout revokes the rotated refresh token after access expiry',
+    () async {
+      final credentials = MemoryCredentials(
+        accessToken: 'expired-access',
+        refreshToken: 'old-refresh',
+      );
+      final logoutBodies = <Map<String, dynamic>>[];
+      final api = ApiClient(
+        baseUri: Uri.parse('https://example.com/api/v1/'),
+        credentials: credentials,
+        httpClient: MockClient((request) async {
+          if (request.url.path.endsWith('auth/refresh')) {
+            return jsonResponse({
+              'token': 'new-access',
+              'refresh_token': 'new-refresh',
+            });
+          }
+          logoutBodies.add(
+            Map<String, dynamic>.from(jsonDecode(request.body) as Map),
+          );
+          if (request.headers['Authorization'] == 'Bearer expired-access') {
+            return jsonResponse({'message': 'Unauthenticated.'}, 401);
+          }
+          return jsonResponse({'message': 'Logged out.'});
+        }),
+      );
+      await api.restore();
+      await AuthService(api).logout();
+      expect(logoutBodies.last['refresh_token'], 'new-refresh');
+      expect(credentials.accessToken, isNull);
+      expect(credentials.refreshToken, isNull);
+    },
+  );
+
+  test(
+    'group data and kobo amounts come from paginated API responses',
+    () async {
+      final calls = <String>[];
+      final api = ApiClient(
+        baseUri: Uri.parse('https://example.com/api/v1/'),
+        httpClient: MockClient((request) async {
+          calls.add(request.url.path);
+          final path = request.url.path;
+          if (path.endsWith('/groups')) return jsonResponse(page([group]));
+          if (path.endsWith('/groups/3')) {
+            return jsonResponse({
+              ...group,
+              'members': [
+                {
+                  'id': 11,
+                  'group_id': 3,
+                  'user_id': 7,
+                  'payout_position': 1,
+                  'joined_at': '2026-09-30T12:00:00.000000Z',
+                  'user': {'id': 7, 'name': 'Ada Okafor'},
+                },
+              ],
+              'payouts': [],
+            });
+          }
+          if (path.endsWith('/groups/3/contributions')) {
+            return jsonResponse(
+              page([
+                {
+                  'id': 21,
+                  'group_id': 3,
+                  'member_id': 11,
+                  'cycle': 1,
+                  'amount_kobo': 125050,
+                  'status': 'pending',
+                  'payment_reference': null,
+                  'paid_at': null,
+                },
+              ]),
+            );
+          }
+          if (path.endsWith('/groups/3/schedule')) {
+            return jsonResponse({
+              'data': [
+                {
+                  'cycle': 1,
+                  'recipient': {'id': 7, 'name': 'Ada Okafor'},
+                  'scheduled_for': '2026-10-01',
+                  'amount_kobo': 250100,
+                  'status': 'pending',
+                },
+              ],
+            });
+          }
+          if (path.endsWith('/transactions') ||
+              path.endsWith('/notifications')) {
+            return jsonResponse(page([]));
+          }
+          return jsonResponse({'message': 'Not found'}, 404);
+        }),
+      );
+      final app = AppProvider(api: api);
+      await app.refresh();
+      expect(app.groups.single.name, 'Savings circle');
+      expect(app.ownContribution(app.groups.single, '7')!.amountKobo, 125050);
+      expect(
+        app.nextContribution('7', DateTime(2026, 9, 30))!.dueDate,
+        DateTime(2026, 10, 1),
+      );
+      expect(calls, contains('/api/v1/groups/3/contributions'));
+      expect(app.loadError, isNull);
+      app.dispose();
+    },
+  );
 
   test('malformed required API money fails at the boundary', () {
-    expect(() => SavingsGroup.fromApi({...group, 'contribution_amount_kobo': '1250.50'}),
-        throwsA(isA<ApiException>()));
+    expect(
+      () => SavingsGroup.fromApi({
+        ...group,
+        'contribution_amount_kobo': '1250.50',
+      }),
+      throwsA(isA<ApiException>()),
+    );
   });
 }

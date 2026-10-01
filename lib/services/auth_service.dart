@@ -23,31 +23,40 @@ class AuthService {
     String phone,
     String password,
   ) async {
-    final response = ApiData.object(await api.request('POST', 'auth/register', authenticated: false, body: {
-      'name': name.trim(),
-      'email': email.trim().toLowerCase(),
-      'phone': phone.trim(),
-      'password': password,
-      'password_confirmation': password,
-    }));
+    final response = ApiData.object(
+      await api.request(
+        'POST',
+        'auth/register',
+        authenticated: false,
+        body: {
+          'name': name.trim(),
+          'email': email.trim().toLowerCase(),
+          'phone': phone.trim(),
+          'password': password,
+          'password_confirmation': password,
+        },
+      ),
+    );
     final user = AppUser.fromApi(response['user']);
     await api.setSession(response);
     return user;
   }
 
   Future<AppUser> login(String email, String password) async {
-    final response = ApiData.object(await api.request('POST', 'auth/login', authenticated: false, body: {
-      'email': email.trim().toLowerCase(),
-      'password': password,
-    }));
+    final response = ApiData.object(
+      await api.request(
+        'POST',
+        'auth/login',
+        authenticated: false,
+        body: {'email': email.trim().toLowerCase(), 'password': password},
+      ),
+    );
     final user = AppUser.fromApi(response['user']);
     await api.setSession(response);
     return user;
   }
 
   Future<void> logout() async {
-    final refresh = await api.credentials.refresh;
-    if (refresh != null) await api.post('auth/logout', {'refresh_token': refresh});
-    await api.clearSession();
+    await api.revokeSession();
   }
 }
