@@ -3,6 +3,8 @@ import '../services/api_data.dart';
 class GroupPreview {
   final String id, name, description, frequency;
   final int amountKobo, maxMembers, membersCount;
+  final bool requiresApproval;
+  final String? joinRequestStatus;
   final DateTime startDate;
 
   const GroupPreview(
@@ -13,6 +15,8 @@ class GroupPreview {
     this.amountKobo,
     this.maxMembers,
     this.membersCount,
+    this.requiresApproval,
+    this.joinRequestStatus,
     this.startDate,
   );
 
@@ -32,6 +36,13 @@ class GroupPreview {
       ApiData.kobo(data, 'contribution_amount_kobo'),
       ApiData.integer(data, 'max_members'),
       ApiData.integer(data, 'members_count'),
+      ApiData.boolean(data, 'requires_approval'),
+      ApiData.optionalOneOf(data, 'join_request_status', [
+        'pending',
+        'rejected',
+        'approved',
+        'joined',
+      ]),
       ApiData.date(data, 'start_date'),
     );
   }

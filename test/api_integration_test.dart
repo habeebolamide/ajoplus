@@ -45,6 +45,7 @@ final group = {
   'contribution_amount_kobo': 125050,
   'frequency': 'monthly',
   'max_members': 2,
+  'requires_approval': false,
   'start_date': '2026-10-01',
   'invite_code': 'ABCD1234',
   'current_cycle': 1,
@@ -230,4 +231,26 @@ void main() {
       throwsA(isA<ApiException>()),
     );
   });
+
+  test(
+    'a join request stays pending until the organizer approves it',
+    () async {
+      final api = ApiClient(
+        baseUri: Uri.parse('https://example.com/api/v1/'),
+        credentials: MemoryCredentials(accessToken: 'access'),
+        httpClient: MockClient((request) async {
+          expect(request.url.path, '/api/v1/groups/join');
+          expect(jsonDecode(request.body), {'invite_code': 'ABCD1234'});
+          return jsonResponse({'group_id': 3, 'join_status': 'pending'}, 202);
+        }),
+      );
+      final app = AppProvider(api: api);
+
+      final result = await app.join('abcd1234');
+
+      expect(result.groupId, '3');
+      expect(result.pendingApproval, isTrue);
+      app.dispose();
+    },
+  );
 }

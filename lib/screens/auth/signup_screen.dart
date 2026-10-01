@@ -151,9 +151,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       value != password.text ? 'Passwords do not match' : null,
                 ),
                 const SizedBox(height: 22),
-                FilledButton(
-                  onPressed: context.watch<AuthProvider>().busy ? null : submit,
-                  child: const Text('Create Account'),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) => FilledButton(
+                    onPressed: auth.busy ? null : submit,
+                    child: auth.busy
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('Creating account…'),
+                            ],
+                          )
+                        : const Text('Create Account'),
+                  ),
                 ),
               ],
             ),

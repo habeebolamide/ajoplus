@@ -9,6 +9,7 @@ import '../transactions/transactions_screen.dart';
 import 'members_screen.dart';
 import '../contributions/contributions_screen.dart';
 import 'payout_schedule_screen.dart';
+import 'join_requests_screen.dart';
 
 class GroupDashboardScreen extends StatefulWidget {
   final String groupId;
@@ -169,6 +170,17 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           ),
           if (group.creatorId == user.id && !complete) ...[
             const SectionTitle('Organizer'),
+            if (group.requiresApproval)
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => JoinRequestsScreen(groupId: group.id),
+                  ),
+                ),
+                icon: const Icon(Icons.how_to_reg_outlined),
+                label: const Text('Review join requests'),
+              ),
             if (app.hasPendingPayout(group))
               FilledButton.icon(
                 onPressed: saving ? null : () => _settle(app, group),

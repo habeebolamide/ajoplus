@@ -19,6 +19,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final amount = TextEditingController();
   final members = TextEditingController();
   String frequency = 'Monthly';
+  bool requiresApproval = true;
   DateTime? startDate;
   bool saving = false;
 
@@ -58,6 +59,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         amountKobo: parseNairaToKobo(amount.text)!,
         frequency: frequency,
         maxMembers: int.parse(members.text),
+        requiresApproval: requiresApproval,
         startDate: startDate!,
       );
       await app.refreshReminders(user.id);
@@ -146,9 +148,21 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               keyboardType: TextInputType.number,
               validator: (value) =>
                   (int.tryParse(value ?? '') ?? 0) < 2 ||
-                      (int.tryParse(value ?? '') ?? 0) > 100
-                  ? 'Choose 2 to 100 members'
+                      (int.tryParse(value ?? '') ?? 0) > 200
+                  ? 'Choose 2 to 200 members'
                   : null,
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: requiresApproval,
+              onChanged: (value) => setState(() => requiresApproval = value),
+              title: const Text('Approve members before they join'),
+              subtitle: Text(
+                requiresApproval
+                    ? 'People with the invite code must wait for your approval.'
+                    : 'Anyone with the invite code can join until the group is full.',
+              ),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(

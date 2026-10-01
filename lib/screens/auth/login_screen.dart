@@ -97,11 +97,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         (value?.isEmpty ?? true) ? 'Enter your password' : null,
                   ),
                   const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: context.watch<AuthProvider>().busy
-                        ? null
-                        : submit,
-                    child: const Text('Sign In'),
+                  Consumer<AuthProvider>(
+                    builder: (context, auth, _) => FilledButton(
+                      onPressed: auth.busy ? null : submit,
+                      child: auth.busy
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text('Signing in…'),
+                              ],
+                            )
+                          : const Text('Sign In'),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Center(

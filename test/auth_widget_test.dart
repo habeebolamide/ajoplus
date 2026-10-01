@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ajoplus/providers/providers.dart';
@@ -121,6 +122,44 @@ void main() {
     expect(snackbar.backgroundColor, errorColor);
     expect(snackbar.behavior, SnackBarBehavior.floating);
     expect(find.byIcon(Icons.error_rounded), findsOneWidget);
+  });
+
+  testWidgets('sign-in button shows progress while the request is pending', (
+    tester,
+  ) async {
+    final response = Completer<http.Response>();
+    final api = ApiClient(
+      baseUri: Uri.parse('https://example.com/api/v1/'),
+      credentials: MemoryCredentials(),
+      httpClient: MockClient((_) => response.future),
+    );
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthProvider(api: api),
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'ada@example.com');
+    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+    await tester.tap(find.text('Sign In'));
+    await tester.pump();
+
+    expect(find.text('Signing in…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+    );
+
+    response.complete(
+      http.Response(
+        jsonEncode({'message': 'These credentials are incorrect.'}),
+        422,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('These credentials are incorrect.'), findsOneWidget);
   });
 
   testWidgets('sign in loads the real API dashboard without demo content', (

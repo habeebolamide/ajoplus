@@ -4,6 +4,7 @@ import '../models/app_transaction.dart';
 import '../models/app_user.dart';
 import '../models/contribution.dart';
 import '../models/group_member.dart';
+import '../models/group_join_request.dart';
 import '../models/group_preview.dart';
 import '../models/payout.dart';
 import '../models/payout_schedule_entry.dart';
@@ -199,6 +200,7 @@ class AppProvider extends ChangeNotifier {
     required int amountKobo,
     required String frequency,
     required int maxMembers,
+    required bool requiresApproval,
     required DateTime startDate,
   }) async {
     final date =
@@ -209,6 +211,7 @@ class AppProvider extends ChangeNotifier {
       'contribution_amount_kobo': amountKobo,
       'frequency': frequency.toLowerCase(),
       'max_members': maxMembers,
+      'requires_approval': requiresApproval,
       'start_date': date,
     });
     final created = SavingsGroup.fromApi(raw);
@@ -220,12 +223,35 @@ class AppProvider extends ChangeNotifier {
     await api.post('groups/lookup', {'invite_code': code.trim().toUpperCase()}),
   );
 
-  Future<SavingsGroup> join(String code) async {
-    final joined = SavingsGroup.fromApi(
+  Future<({String groupId, bool pendingApproval})> join(String code) async {
+    final response = ApiData.object(
       await api.post('groups/join', {'invite_code': code.trim().toUpperCase()}),
     );
+    if (ApiData.oneOf(response, 'join_status', ['joined', 'pending']) ==
+        'pending') {
+      return (groupId: ApiData.id(response, 'group_id'), pendingApproval: true);
+    }
+    final joined = SavingsGroup.fromApi(response);
     await refresh();
-    return joined;
+    return (groupId: joined.id, pendingApproval: false);
+  }
+
+  Future<List<GroupJoinRequest>> joinRequests(String groupId) async {
+    final response = ApiData.object(
+      await api.get('groups/$groupId/join-requests'),
+    );
+    return ApiData.array(
+      response['data'],
+    ).map(GroupJoinRequest.fromApi).toList();
+  }
+
+  Future<void> approveJoinRequest(String groupId, String requestId) async {
+    await api.post('groups/$groupId/join-requests/$requestId/approve');
+    await refresh();
+  }
+
+  Future<void> rejectJoinRequest(String groupId, String requestId) async {
+    await api.post('groups/$groupId/join-requests/$requestId/reject');
   }
 
   Future<Uri> checkout(SavingsGroup group, Contribution contribution) async {

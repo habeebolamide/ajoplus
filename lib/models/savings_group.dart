@@ -3,6 +3,7 @@ import '../services/api_data.dart';
 class SavingsGroup {
   final String id, name, description, creatorId, frequency, inviteCode;
   final int contributionAmountKobo, maxMembers, currentCycle;
+  final bool requiresApproval;
   final DateTime startDate, createdAt;
   const SavingsGroup({
     required this.id,
@@ -14,6 +15,7 @@ class SavingsGroup {
     required this.maxMembers,
     required this.startDate,
     required this.inviteCode,
+    this.requiresApproval = true,
     required this.currentCycle,
     required this.createdAt,
   });
@@ -35,6 +37,7 @@ class SavingsGroup {
       maxMembers: ApiData.integer(data, 'max_members'),
       startDate: ApiData.date(data, 'start_date'),
       inviteCode: ApiData.string(data, 'invite_code'),
+      requiresApproval: ApiData.boolean(data, 'requires_approval'),
       currentCycle: ApiData.integer(data, 'current_cycle'),
       createdAt: ApiData.date(data, 'created_at'),
     );
@@ -53,6 +56,7 @@ class SavingsGroup {
       maxMembers: m['maxMembers'] as int,
       startDate: DateTime.parse(m['startDate'] as String),
       inviteCode: m['inviteCode'] as String,
+      requiresApproval: m['requiresApproval'] as bool? ?? true,
       currentCycle: m['currentCycle'] as int,
       createdAt: DateTime.parse(m['createdAt'] as String),
     );
@@ -67,6 +71,7 @@ class SavingsGroup {
     'maxMembers': maxMembers,
     'startDate': startDate.toIso8601String(),
     'inviteCode': inviteCode,
+    'requiresApproval': requiresApproval,
     'currentCycle': currentCycle,
     'createdAt': createdAt.toIso8601String(),
   };
@@ -80,6 +85,7 @@ class SavingsGroup {
     maxMembers: maxMembers,
     startDate: startDate,
     inviteCode: inviteCode,
+    requiresApproval: requiresApproval,
     currentCycle: cycle,
     createdAt: createdAt,
   );

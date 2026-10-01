@@ -18,6 +18,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   GroupPreview? found;
   bool joining = false;
   bool searching = false;
+  bool requestPending = false;
 
   @override
   void dispose() {
@@ -33,10 +34,16 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     setState(() {
       searching = true;
       found = null;
+      requestPending = false;
     });
     try {
       final result = await context.read<AppProvider>().lookup(code.text);
-      if (mounted) setState(() => found = result);
+      if (mounted) {
+        setState(() {
+          found = result;
+          requestPending = result.joinRequestStatus == 'pending';
+        });
+      }
     } catch (error) {
       if (mounted) showError(context, error);
     } finally {
@@ -51,12 +58,43 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     final app = context.read<AppProvider>();
     final user = context.read<AuthProvider>().user!;
     try {
-      final joined = await app.join(code.text);
+      final result = await app.join(code.text);
+      if (result.pendingApproval) {
+        if (mounted) {
+          setState(() => requestPending = true);
+          showInfo(
+            context,
+            'Your request was sent. The group organizer must approve it before you can join.',
+            kind: FeedbackKind.success,
+          );
+        }
+        return;
+      }
       await app.refreshReminders(user.id);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => GroupDashboardScreen(groupId: joined.id),
+          builder: (_) => GroupDashboardScreen(groupId: result.groupId),
+        ),
+      );
+    } catch (error) {
+      if (mounted) showError(context, error);
+    } finally {
+      if (mounted) setState(() => joining = false);
+    }
+  }
+
+  Future<void> openApprovedGroup(GroupPreview group) async {
+    setState(() => joining = true);
+    final app = context.read<AppProvider>();
+    final user = context.read<AuthProvider>().user!;
+    try {
+      await app.refresh();
+      await app.refreshReminders(user.id);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => GroupDashboardScreen(groupId: group.id),
         ),
       );
     } catch (error) {
@@ -69,6 +107,10 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   @override
   Widget build(BuildContext context) {
     final group = found;
+    final alreadyJoined =
+        group?.joinRequestStatus == 'approved' ||
+        group?.joinRequestStatus == 'joined';
+    final groupIsFull = group != null && group.membersCount >= group.maxMembers;
     return Scaffold(
       appBar: AppBar(title: const Text('Join group')),
       body: ListView(
@@ -121,13 +163,42 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                     ),
                     Text('Members: ${group.membersCount}/${group.maxMembers}'),
                     Text(
+                      group.requiresApproval
+                          ? 'Joining requires organizer approval'
+                          : 'Anyone with the code can join',
+                    ),
+                    if (group.joinRequestStatus == 'pending')
+                      const Text('Your request is waiting for approval.'),
+                    if (group.joinRequestStatus == 'rejected')
+                      const Text('Your previous request was declined.'),
+                    Text(
                       'Available slots: ${group.maxMembers - group.membersCount}',
                     ),
                     Text('Starts: ${shortDate(group.startDate)}'),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: joining ? null : join,
-                      child: Text(joining ? 'Joining…' : 'Confirm Join'),
+                      onPressed: joining
+                          ? null
+                          : alreadyJoined
+                          ? () => openApprovedGroup(group)
+                          : requestPending || groupIsFull
+                          ? null
+                          : join,
+                      child: Text(
+                        joining
+                            ? group.requiresApproval
+                                  ? 'Sending request…'
+                                  : 'Joining…'
+                            : requestPending
+                            ? 'Request pending approval'
+                            : alreadyJoined
+                            ? 'Open Group'
+                            : groupIsFull
+                            ? 'Group is full'
+                            : group.requiresApproval
+                            ? 'Request to Join'
+                            : 'Confirm Join',
+                      ),
                     ),
                   ],
                 ),

@@ -29,9 +29,7 @@ class ContributionsScreen extends StatelessWidget {
             detail:
                 '${rows.where((row) => row.status == 'Paid').length} of ${rows.length} paid',
           ),
-          if (own != null &&
-              own.status != 'Paid' &&
-              app.groupMembers(groupId).length == group.maxMembers) ...[
+          if (own != null && own.status != 'Paid') ...[
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: () => Navigator.push(

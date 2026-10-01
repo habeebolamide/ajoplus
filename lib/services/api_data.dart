@@ -39,6 +39,27 @@ class ApiData {
     throw const ApiException('The server returned invalid data.');
   }
 
+  static bool boolean(Map<String, Object?> data, String key) {
+    final value = data[key];
+    if (value is! bool) {
+      throw const ApiException('The server returned invalid data.');
+    }
+    return value;
+  }
+
+  static String? optionalOneOf(
+    Map<String, Object?> data,
+    String key,
+    List<String> allowed,
+  ) {
+    if (data[key] == null) return null;
+    final value = string(data, key);
+    if (!allowed.contains(value)) {
+      throw const ApiException('The server returned an unsupported value.');
+    }
+    return value;
+  }
+
   static int kobo(Map<String, Object?> data, String key) {
     final amount = integer(data, key);
     if (amount < 0) {

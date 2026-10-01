@@ -15,7 +15,9 @@ class StatusChip extends StatelessWidget {
       'Pending settlement',
     ].contains(status);
     final color = positive
-        ? scheme.primary
+        ? scheme.brightness == Brightness.dark
+              ? const Color(0xFF86EFAC)
+              : const Color(0xFF166534)
         : caution
         ? scheme.tertiary
         : scheme.error;
