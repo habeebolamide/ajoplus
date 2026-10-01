@@ -46,7 +46,22 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
         ? GroupService.cycleDate(group, group.currentCycle)
         : payoutDates.first.scheduledFor;
     return Scaffold(
-      appBar: AppBar(title: Text(group.name)),
+      appBar: AppBar(
+        title: Text(group.name),
+        actions: [
+          if (group.creatorId == user.id && group.requiresApproval && !complete)
+            IconButton(
+              tooltip: 'Join requests',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => JoinRequestsScreen(groupId: group.id),
+                ),
+              ),
+              icon: const Icon(Icons.how_to_reg_outlined),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -170,17 +185,6 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           ),
           if (group.creatorId == user.id && !complete) ...[
             const SectionTitle('Organizer'),
-            if (group.requiresApproval)
-              OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => JoinRequestsScreen(groupId: group.id),
-                  ),
-                ),
-                icon: const Icon(Icons.how_to_reg_outlined),
-                label: const Text('Review join requests'),
-              ),
             if (app.hasPendingPayout(group))
               FilledButton.icon(
                 onPressed: saving ? null : () => _settle(app, group),
