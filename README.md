@@ -19,7 +19,7 @@ Once every member has paid, the organizer can prepare a payout. It remains **pen
 ## Data and security
 
 - Sanctum access and rotating refresh tokens are held in platform secure storage. Unauthorized responses trigger one refresh and one retry; an invalid refresh signs the user out.
-- The app does not store group or account data in Hive. On the first upgraded launch, it clears all legacy Hive boxes, including old local users and demo records.
+- The app reads group and account data from the API. Legacy Hive records are left intact on existing installations but are never loaded into the live UI. The old local session is removed on upgrade.
 - SharedPreferences holds only device preferences such as theme, onboarding, and reminder choice.
 - GET requests retry transient failures. Writes are not automatically repeated. Loading, empty, validation, timeout, network, and malformed-response states are handled at the UI or API boundary.
 
