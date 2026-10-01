@@ -56,6 +56,7 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(index == 0 ? 'AjoPlus' : titles[index]),
+        titleSpacing: 20,
         actions: index == 0
             ? [
                 IconButton(
@@ -80,12 +81,20 @@ class _MainShellState extends State<MainShell> {
           ? const Center(child: CircularProgressIndicator())
           : app.loadError != null
           ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(app.loadError!),
-                  TextButton(onPressed: _load, child: const Text('Retry')),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_outlined, size: 42, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 14),
+                    Text('We couldn’t load your savings', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+                    const SizedBox(height: 6),
+                    Text(app.loadError!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+                  ],
+                ),
               ),
             )
           : RefreshIndicator(

@@ -44,17 +44,83 @@ class HomeTab extends StatelessWidget {
     final nextPayout = payoutTurns.firstOrNull;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       children: [
         Text(
-          'Good ${_greeting()}, ${user.fullName.split(' ').first}',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+          'Good ${_greeting()},\n${user.fullName.split(' ').first}',
+          style: Theme.of(context).textTheme.headlineMedium,
         ),
-        const SizedBox(height: 5),
-        const Text('Here is your savings overview.'),
-        const SizedBox(height: 18),
+        const SizedBox(height: 6),
+        Text(
+          'Your savings, moving forward.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Card(
+          color: Theme.of(context).colorScheme.primary,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'TOTAL CONTRIBUTED',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withValues(alpha: .78),
+                          letterSpacing: 1.1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        money(contributed),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${groups.length} active ${groups.length == 1 ? 'group' : 'groups'}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withValues(alpha: .82),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.savings_outlined,
+                  size: 36,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withValues(alpha: .85),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (groups.isEmpty) ...[
+          const SectionTitle('My groups'),
+          const EmptyState(
+            icon: Icons.groups_outlined,
+            title: 'No groups yet',
+            description:
+                "Create a savings group or join one with an invite code.",
+          ),
+        ],
+        const SectionTitle('Your overview'),
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
@@ -96,7 +162,7 @@ class HomeTab extends StatelessWidget {
             );
           },
         ),
-        const SectionTitle('Quick actions'),
+        const SectionTitle('Get started'),
         Row(
           children: [
             Expanded(
@@ -126,13 +192,7 @@ class HomeTab extends StatelessWidget {
             ),
           ],
         ),
-        const SectionTitle('My groups'),
-        if (groups.isEmpty)
-          const EmptyState(
-            icon: Icons.groups_outlined,
-            title: 'No groups yet',
-            description: "You haven't joined any savings groups yet.",
-          ),
+        if (groups.isNotEmpty) const SectionTitle('My groups'),
         ...groups.map(
           (group) => GroupCard(
             group: group,

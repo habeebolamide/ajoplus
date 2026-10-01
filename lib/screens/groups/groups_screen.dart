@@ -15,8 +15,12 @@ class GroupsTab extends StatelessWidget {
     final user = context.watch<AuthProvider>().user!;
     final groups = app.myGroups(user.id);
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
+        Text('Your circles', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 5),
+        Text('Build a steady savings habit with your community.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 20),
         Row(
           children: [
             Expanded(

@@ -55,12 +55,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.savings_rounded,
-                    size: 54,
-                    color: Theme.of(context).colorScheme.primary,
+                  DecoratedBox(
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: .1), borderRadius: BorderRadius.circular(18)),
+                    child: Padding(padding: const EdgeInsets.all(14), child: Icon(Icons.savings_rounded, size: 32, color: Theme.of(context).colorScheme.primary)),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   Text(
                     'Welcome back',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(

@@ -30,8 +30,12 @@ class _TransactionsTabState extends State<TransactionsTab> {
         )
         .toList();
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
+        Text('Your money activity', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 5),
+        Text('Every contribution and payout in one place.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 18),
         Wrap(
           spacing: 8,
           children: ['All', 'Contributions', 'Payouts']
