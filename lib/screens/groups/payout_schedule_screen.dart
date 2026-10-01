@@ -13,7 +13,9 @@ class PayoutScheduleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final group = app.group(groupId);
-    final schedule = app.schedule.where((item) => item.groupId == groupId).toList();
+    final schedule = app.schedule
+        .where((item) => item.groupId == groupId)
+        .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Payout schedule')),
       body: ListView(
@@ -28,10 +30,18 @@ class PayoutScheduleScreen extends StatelessWidget {
             final cycle = index + 1;
             final entries = schedule.where((item) => item.cycle == cycle);
             final entry = entries.isEmpty ? null : entries.first;
-            final status = entry?.status == 'completed' ? 'Completed'
-                : app.payouts.any((p) => p.groupId == groupId && p.cycle == cycle && p.status == 'Pending')
+            final status = entry?.status == 'completed'
+                ? 'Completed'
+                : app.payouts.any(
+                    (p) =>
+                        p.groupId == groupId &&
+                        p.cycle == cycle &&
+                        p.status == 'Pending',
+                  )
                 ? 'Pending settlement'
-                : cycle == group.currentCycle ? 'Upcoming' : 'Scheduled';
+                : cycle == group.currentCycle
+                ? 'Upcoming'
+                : 'Scheduled';
             return Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('$cycle')),

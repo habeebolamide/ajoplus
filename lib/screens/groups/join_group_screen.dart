@@ -30,7 +30,10 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       showInfo(context, 'Enter an invite code.');
       return;
     }
-    setState(() { searching = true; found = null; });
+    setState(() {
+      searching = true;
+      found = null;
+    });
     try {
       final result = await context.read<AppProvider>().lookup(code.text);
       if (mounted) setState(() => found = result);
@@ -48,12 +51,12 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     final app = context.read<AppProvider>();
     final user = context.read<AuthProvider>().user!;
     try {
-      await app.join(code.text);
+      final joined = await app.join(code.text);
       await app.refreshReminders(user.id);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => GroupDashboardScreen(groupId: group.id),
+          builder: (_) => GroupDashboardScreen(groupId: joined.id),
         ),
       );
     } catch (error) {
@@ -82,6 +85,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           const SizedBox(height: 20),
           TextField(
             controller: code,
+            onChanged: (_) => setState(() => found = null),
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
               labelText: 'Invite code',
@@ -93,7 +97,10 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             onSubmitted: (_) => search(),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: searching ? null : search, child: Text(searching ? 'Finding…' : 'Find Group')),
+          FilledButton(
+            onPressed: searching ? null : search,
+            child: Text(searching ? 'Finding…' : 'Find Group'),
+          ),
           if (group != null) ...[
             const SectionTitle('Group details'),
             Card(
@@ -112,9 +119,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                     Text(
                       'Contribution: ${money(group.amountKobo)} · ${group.frequency}',
                     ),
-                    Text(
-                      'Members: ${group.membersCount}/${group.maxMembers}',
-                    ),
+                    Text('Members: ${group.membersCount}/${group.maxMembers}'),
                     Text(
                       'Available slots: ${group.maxMembers - group.membersCount}',
                     ),

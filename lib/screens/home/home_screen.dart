@@ -27,10 +27,20 @@ class HomeTab extends StatelessWidget {
       (sum, row) => sum + row.amountKobo,
     );
     final nextContribution = app.nextContribution(user.id, DateTime.now());
-    final payoutTurns = app.schedule.where((entry) =>
-        entry.recipientId == user.id && entry.status != 'completed' &&
-        groups.any((group) => group.id == entry.groupId && entry.cycle >= group.currentCycle)).toList()
-      ..sort((a, b) => a.scheduledFor.compareTo(b.scheduledFor));
+    final payoutTurns =
+        app.schedule
+            .where(
+              (entry) =>
+                  entry.recipientId == user.id &&
+                  entry.status != 'completed' &&
+                  groups.any(
+                    (group) =>
+                        group.id == entry.groupId &&
+                        entry.cycle >= group.currentCycle,
+                  ),
+            )
+            .toList()
+          ..sort((a, b) => a.scheduledFor.compareTo(b.scheduledFor));
     final nextPayout = payoutTurns.firstOrNull;
 
     return ListView(
@@ -76,9 +86,7 @@ class HomeTab extends StatelessWidget {
                   width: (width - 8) / 2,
                   child: MetricCard(
                     'Next Payout',
-                    nextPayout == null
-                        ? '—'
-                        : money(nextPayout.amountKobo),
+                    nextPayout == null ? '—' : money(nextPayout.amountKobo),
                     detail: nextPayout == null
                         ? null
                         : shortDate(nextPayout.scheduledFor),

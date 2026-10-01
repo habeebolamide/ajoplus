@@ -95,9 +95,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Invite members with the code created for your group.',
-            ),
+            const Text('Invite members with the code created for your group.'),
             const SizedBox(height: 24),
             TextFormField(
               controller: name,
@@ -121,7 +119,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 labelText: 'Contribution amount',
                 prefixText: '₦',
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (value) => parseNairaToKobo(value ?? '') == null
                   ? 'Enter a valid amount in naira (up to 2 decimal places)'
                   : null,
@@ -143,7 +143,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               controller: members,
               decoration: const InputDecoration(labelText: 'Number of members'),
               keyboardType: TextInputType.number,
-              validator: (value) => (int.tryParse(value ?? '') ?? 0) < 2 || (int.tryParse(value ?? '') ?? 0) > 100
+              validator: (value) =>
+                  (int.tryParse(value ?? '') ?? 0) < 2 ||
+                      (int.tryParse(value ?? '') ?? 0) > 100
                   ? 'Choose 2 to 100 members'
                   : null,
             ),

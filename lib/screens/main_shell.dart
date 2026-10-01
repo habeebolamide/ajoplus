@@ -79,11 +79,19 @@ class _MainShellState extends State<MainShell> {
       body: app.loading && app.groups.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : app.loadError != null
-          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(app.loadError!),
-              TextButton(onPressed: _load, child: const Text('Retry')),
-            ]))
-          : RefreshIndicator(onRefresh: _load, child: IndexedStack(index: index, children: screens)),
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(app.loadError!),
+                  TextButton(onPressed: _load, child: const Text('Retry')),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: IndexedStack(index: index, children: screens),
+            ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (value) => setState(() => index = value),

@@ -19,6 +19,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final phone = TextEditingController();
   final password = TextEditingController();
   final confirmation = TextEditingController();
+  bool passwordHidden = true;
+  bool confirmationHidden = true;
 
   @override
   void dispose() {
@@ -99,8 +101,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: password,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: passwordHidden,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: IconButton(
+                      tooltip: passwordHidden
+                          ? 'Show password'
+                          : 'Hide password',
+                      onPressed: () =>
+                          setState(() => passwordHidden = !passwordHidden),
+                      icon: Icon(
+                        passwordHidden
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                    ),
+                  ),
                   validator: (value) => (value?.length ?? 0) < 8
                       ? 'Use at least 8 characters'
                       : null,
@@ -108,9 +124,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: confirmation,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: confirmationHidden,
+                  decoration: InputDecoration(
                     labelText: 'Confirm password',
+                    suffixIcon: IconButton(
+                      tooltip: confirmationHidden
+                          ? 'Show password confirmation'
+                          : 'Hide password confirmation',
+                      onPressed: () => setState(
+                        () => confirmationHidden = !confirmationHidden,
+                      ),
+                      icon: Icon(
+                        confirmationHidden
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                    ),
                   ),
                   validator: (value) =>
                       value != password.text ? 'Passwords do not match' : null,

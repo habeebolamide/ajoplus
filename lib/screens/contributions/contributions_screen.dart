@@ -29,7 +29,9 @@ class ContributionsScreen extends StatelessWidget {
             detail:
                 '${rows.where((row) => row.status == 'Paid').length} of ${rows.length} paid',
           ),
-          if (own != null && own.status != 'Paid' && app.groupMembers(groupId).length == group.maxMembers) ...[
+          if (own != null &&
+              own.status != 'Paid' &&
+              app.groupMembers(groupId).length == group.maxMembers) ...[
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: () => Navigator.push(
@@ -43,9 +45,13 @@ class ContributionsScreen extends StatelessWidget {
               label: const Text('Pay Contribution'),
             ),
           ],
-        const SectionTitle('Current cycle'),
-        if (rows.isEmpty)
-          const EmptyState(icon: Icons.payments_outlined, title: 'No contributions yet', description: 'Contributions will appear when members join.'),
+          const SectionTitle('Current cycle'),
+          if (rows.isEmpty)
+            const EmptyState(
+              icon: Icons.payments_outlined,
+              title: 'No contributions yet',
+              description: 'Contributions will appear when members join.',
+            ),
           ...rows.map(
             (row) => Card(
               child: ListTile(
@@ -57,7 +63,11 @@ class ContributionsScreen extends StatelessWidget {
           ),
           const SectionTitle('Contribution history'),
           if (history.isEmpty)
-            const EmptyState(icon: Icons.history, title: 'No history yet', description: 'Past contributions will appear here.'),
+            const EmptyState(
+              icon: Icons.history,
+              title: 'No history yet',
+              description: 'Past contributions will appear here.',
+            ),
           ...history.map(
             (row) => Card(
               child: ListTile(

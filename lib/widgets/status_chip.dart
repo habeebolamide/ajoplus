@@ -8,7 +8,12 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final positive = ['Paid', 'Completed', 'Successful'].contains(status);
-    final caution = ['Pending', 'Upcoming', 'Scheduled', 'Pending settlement'].contains(status);
+    final caution = [
+      'Pending',
+      'Upcoming',
+      'Scheduled',
+      'Pending settlement',
+    ].contains(status);
     final color = positive
         ? scheme.primary
         : caution

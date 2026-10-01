@@ -18,7 +18,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _start();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _start();
+    });
   }
 
   Future<void> _start() async {
@@ -64,8 +66,16 @@ class _SplashScreenState extends State<SplashScreen> {
               const CircularProgressIndicator(),
             ] else ...[
               const SizedBox(height: 24),
-              const Text('Could not connect to AjoPlus. Check your connection and retry.'),
-              TextButton(onPressed: () { setState(() => error = null); _start(); }, child: const Text('Retry')),
+              const Text(
+                'Could not connect to AjoPlus. Check your connection and retry.',
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => error = null);
+                  _start();
+                },
+                child: const Text('Retry'),
+              ),
             ],
           ],
         ),

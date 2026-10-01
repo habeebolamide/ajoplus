@@ -10,23 +10,41 @@ import 'members_screen.dart';
 import '../contributions/contributions_screen.dart';
 import 'payout_schedule_screen.dart';
 
-class GroupDashboardScreen extends StatelessWidget {
+class GroupDashboardScreen extends StatefulWidget {
   final String groupId;
   const GroupDashboardScreen({super.key, required this.groupId});
 
   @override
+  State<GroupDashboardScreen> createState() => _GroupDashboardScreenState();
+}
+
+class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
+  bool saving = false;
+
+  @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
-    final group = app.group(groupId);
+    final group = app.group(widget.groupId);
     final user = context.watch<AuthProvider>().user!;
-    final count = app.groupMembers(groupId).length;
+    final count = app.groupMembers(widget.groupId).length;
     final complete = group.currentCycle > group.maxMembers;
     final recipient = complete ? null : app.recipient(group);
     final expected = app.expected(group);
     final balance = app.balance(group);
-    final nextContributionDate = GroupService.cycleDate(group,
-        app.ownContribution(group, user.id)?.status == 'Paid' && group.currentCycle < group.maxMembers
-            ? group.currentCycle + 1 : group.currentCycle);
+    final nextContributionDate = GroupService.cycleDate(
+      group,
+      app.ownContribution(group, user.id)?.status == 'Paid' &&
+              group.currentCycle < group.maxMembers
+          ? group.currentCycle + 1
+          : group.currentCycle,
+    );
+    final payoutDates = app.schedule.where(
+      (entry) =>
+          entry.groupId == group.id && entry.cycle == group.currentCycle,
+    );
+    final nextPayoutDate = payoutDates.isEmpty
+        ? GroupService.cycleDate(group, group.currentCycle)
+        : payoutDates.first.scheduledFor;
     return Scaffold(
       appBar: AppBar(title: Text(group.name)),
       body: ListView(
@@ -91,9 +109,7 @@ class GroupDashboardScreen extends StatelessWidget {
                 Expanded(
                   child: MetricCard(
                     'Next payout',
-                    shortDate(
-                      GroupService.cycleDate(group, group.currentCycle),
-                    ),
+                    shortDate(nextPayoutDate),
                   ),
                 ),
               ],
@@ -115,7 +131,7 @@ class GroupDashboardScreen extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (_) => MembersScreen(groupId: groupId),
+                builder: (_) => MembersScreen(groupId: widget.groupId),
               ),
             ),
           ),
@@ -126,7 +142,7 @@ class GroupDashboardScreen extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (_) => ContributionsScreen(groupId: groupId),
+                builder: (_) => ContributionsScreen(groupId: widget.groupId),
               ),
             ),
           ),
@@ -137,7 +153,7 @@ class GroupDashboardScreen extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (_) => PayoutScheduleScreen(groupId: groupId),
+                builder: (_) => PayoutScheduleScreen(groupId: widget.groupId),
               ),
             ),
           ),
@@ -150,36 +166,27 @@ class GroupDashboardScreen extends StatelessWidget {
               MaterialPageRoute<void>(
                 builder: (_) => Scaffold(
                   appBar: AppBar(title: const Text('Group transactions')),
-                  body: TransactionsTab(groupId: groupId),
+                  body: TransactionsTab(groupId: widget.groupId),
                 ),
               ),
             ),
           ),
           if (group.creatorId == user.id && !complete) ...[
             const SectionTitle('Organizer'),
-            if (app.hasPendingPayout(group)) FilledButton.icon(
-              onPressed: () => _settle(context, app, group),
-              icon: const Icon(Icons.account_balance_outlined),
-              label: const Text('Record manual settlement'),
-            ) else FilledButton.icon(
-              onPressed: app.canComplete(group)
-                  ? () async {
-                      try {
-                        await app.preparePayout(group);
-                        if (context.mounted) {
-                          showInfo(
-                            context,
-                            'Payout is pending manual settlement.',
-                          );
-                        }
-                      } catch (error) {
-                        if (context.mounted) showError(context, error);
-                      }
-                    }
-                  : null,
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Prepare payout'),
-            ),
+            if (app.hasPendingPayout(group))
+              FilledButton.icon(
+                onPressed: saving ? null : () => _settle(app, group),
+                icon: const Icon(Icons.account_balance_outlined),
+                label: const Text('Record manual settlement'),
+              )
+            else
+              FilledButton.icon(
+                onPressed: !saving && app.canComplete(group)
+                    ? () => _prepare(app, group)
+                    : null,
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Prepare payout'),
+              ),
             const SizedBox(height: 8),
             Text(
               'Available when all ${group.maxMembers} members have joined and paid. Record settlement only after the recipient receives the funds.',
@@ -191,26 +198,57 @@ class GroupDashboardScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _settle(BuildContext context, AppProvider app, SavingsGroup group) async {
+  Future<void> _prepare(AppProvider app, SavingsGroup group) async {
+    if (saving) return;
+    setState(() => saving = true);
+    try {
+      await app.preparePayout(group);
+      if (mounted) showInfo(context, 'Payout is pending manual settlement.');
+    } catch (error) {
+      if (mounted) showError(context, error);
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  Future<void> _settle(AppProvider app, SavingsGroup group) async {
+    if (saving) return;
     final controller = TextEditingController();
-    final reference = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('Record manual settlement'),
-      content: TextField(controller: controller, decoration: const InputDecoration(
-        labelText: 'External transfer reference',
-        helperText: 'Enter the reference from your completed transfer.',
-      )),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('Record')),
-      ],
-    ));
+    final reference = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Record manual settlement'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'External transfer reference',
+            helperText: 'Enter the reference from your completed transfer.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Record'),
+          ),
+        ],
+      ),
+    );
     controller.dispose();
     if (reference == null || reference.length < 4) return;
+    if (!mounted) return;
+    setState(() => saving = true);
     try {
       await app.settlePayout(group, reference);
-      if (context.mounted) showInfo(context, 'Manual settlement recorded.');
+      if (mounted) showInfo(context, 'Manual settlement recorded.');
     } catch (error) {
-      if (context.mounted) showError(context, error);
+      if (mounted) showError(context, error);
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
   }
 
