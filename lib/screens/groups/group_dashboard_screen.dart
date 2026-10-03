@@ -4,6 +4,7 @@ import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../services/services.dart';
 import '../../models/savings_group.dart';
+import '../../models/payout.dart';
 import '../../widgets/common.dart';
 import '../transactions/transactions_screen.dart';
 import 'members_screen.dart';
@@ -28,21 +29,25 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
     final group = app.group(widget.groupId);
     final user = context.watch<AuthProvider>().user!;
     final count = app.groupMembers(widget.groupId).length;
-    final complete = group.currentCycle > group.maxMembers;
+    final complete = group.isComplete;
     final recipient = complete ? null : app.recipient(group);
     final expected = app.expected(group);
     final balance = app.balance(group);
+    final own = app.ownContribution(group, user.id);
+    final finalContributionPaid =
+        own?.status == 'Paid' && group.currentCycle == group.totalCycles;
     final nextContributionDate = GroupService.cycleDate(
       group,
-      app.ownContribution(group, user.id)?.status == 'Paid' &&
-              group.currentCycle < group.maxMembers
+      own?.status == 'Paid' && group.currentCycle < group.totalCycles
           ? group.currentCycle + 1
           : group.currentCycle,
     );
     final payoutDates = app.schedule.where(
       (entry) => entry.groupId == group.id && entry.cycle == group.currentCycle,
     );
-    final nextPayoutDate = payoutDates.isEmpty
+    final nextPayoutDate = group.isSavings
+        ? GroupService.maturityDate(group)
+        : payoutDates.isEmpty
         ? GroupService.cycleDate(group, group.currentCycle)
         : payoutDates.first.scheduledFor;
     return Scaffold(
@@ -65,6 +70,13 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            group.ajoType.label,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(group.ajoType.description),
+          const SizedBox(height: 12),
           Text(group.description, style: Theme.of(context).textTheme.bodyLarge),
           const SizedBox(height: 8),
           Text(
@@ -80,8 +92,10 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                 children: [
                   Text(
                     complete
-                        ? 'All cycles complete'
-                        : 'Cycle ${group.currentCycle} of ${group.maxMembers}',
+                        ? group.isSavings
+                              ? 'Savings repaid'
+                              : 'All cycles complete'
+                        : 'Cycle ${group.currentCycle} of ${group.totalCycles}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -92,7 +106,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Current balance',
+                    group.isSavings ? 'Total saved' : 'Current balance',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
@@ -117,12 +131,20 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
               children: [
                 Expanded(
                   child: MetricCard(
-                    'Next contribution',
-                    shortDate(nextContributionDate),
+                    finalContributionPaid
+                        ? 'Contribution'
+                        : 'Next contribution',
+                    finalContributionPaid
+                        ? 'Paid'
+                        : shortDate(nextContributionDate),
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: MetricCard('Next payout', shortDate(nextPayoutDate)),
+                  child: MetricCard(
+                    group.isSavings ? 'Repayment date' : 'Next payout',
+                    shortDate(nextPayoutDate),
+                  ),
                 ),
               ],
             ),
@@ -161,7 +183,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           _shortcut(
             context,
             Icons.event_note_outlined,
-            'Payout schedule',
+            group.isSavings ? 'Repayment schedule' : 'Payout schedule',
             () => Navigator.push(
               context,
               MaterialPageRoute<void>(
@@ -185,7 +207,42 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           ),
           if (group.creatorId == user.id && !complete) ...[
             const SectionTitle('Organizer'),
-            if (app.hasPendingPayout(group))
+            if (group.isSavings && app.hasPendingPayout(group))
+              ...app.payouts
+                  .where(
+                    (payout) =>
+                        payout.groupId == group.id &&
+                        payout.status == 'Pending',
+                  )
+                  .map((payout) {
+                    final member = app
+                        .groupMembers(group.id)
+                        .firstWhere((member) => member.id == payout.memberId);
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              member.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text('${money(payout.amountKobo)} to repay'),
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              onPressed: saving
+                                  ? null
+                                  : () => _settle(app, group, payout: payout),
+                              child: const Text('Record repayment'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+            else if (app.hasPendingPayout(group))
               FilledButton.icon(
                 onPressed: saving ? null : () => _settle(app, group),
                 icon: const Icon(Icons.account_balance_outlined),
@@ -197,11 +254,19 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                     ? () => _prepare(app, group)
                     : null,
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Prepare payout'),
+                label: Text(
+                  group.isSavings
+                      ? group.currentCycle < group.totalCycles
+                            ? 'Complete savings cycle'
+                            : 'Prepare repayments'
+                      : 'Prepare payout',
+                ),
               ),
             const SizedBox(height: 8),
             Text(
-              'Available when all ${group.maxMembers} members have joined and paid. Record settlement only after the recipient receives the funds.',
+              group.isSavings
+                  ? 'Complete each cycle after all members have paid. Savings are held until ${shortDate(GroupService.maturityDate(group))}. Record each repayment only after that member receives the funds.'
+                  : 'Available when all ${group.maxMembers} members have joined and paid. Record settlement only after the recipient receives the funds.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -218,7 +283,11 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
       if (mounted) {
         showInfo(
           context,
-          'Payout is pending manual settlement.',
+          group.isSavings
+              ? group.currentCycle < group.totalCycles
+                    ? 'Cycle completed. Contributions remain in savings.'
+                    : 'Repayments are pending manual settlement.'
+              : 'Payout is pending manual settlement.',
           kind: FeedbackKind.warning,
         );
       }
@@ -229,13 +298,21 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
     }
   }
 
-  Future<void> _settle(AppProvider app, SavingsGroup group) async {
+  Future<void> _settle(
+    AppProvider app,
+    SavingsGroup group, {
+    Payout? payout,
+  }) async {
     if (saving) return;
     final controller = TextEditingController();
     final reference = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Record manual settlement'),
+        title: Text(
+          payout == null
+              ? 'Record manual settlement'
+              : 'Repay ${app.groupMembers(group.id).firstWhere((member) => member.id == payout.memberId).name}',
+        ),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(
@@ -261,7 +338,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
     if (!mounted) return;
     setState(() => saving = true);
     try {
-      await app.settlePayout(group, reference);
+      await app.settlePayout(group, reference, payoutId: payout?.id);
       if (mounted) {
         showInfo(
           context,

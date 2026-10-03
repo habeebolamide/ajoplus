@@ -27,9 +27,14 @@ class GroupCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .1),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: .1),
                   foregroundColor: Theme.of(context).colorScheme.primary,
-                  child: Text(group.name.characters.first.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    group.name.characters.first.toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -44,14 +49,18 @@ class GroupCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            Text('${money(group.contributionAmountKobo)} · ${group.frequency}'),
+            Text('${group.ajoType.label} · ${group.frequency}'),
+            const SizedBox(height: 4),
+            Text(
+              '${money(group.contributionAmountKobo)} per member each cycle',
+            ),
             const SizedBox(height: 10),
             LinearProgressIndicator(
               value: expected == 0 ? 0 : (balance / expected).clamp(0, 1),
             ),
             const SizedBox(height: 7),
             Text(
-              '${money(balance)} of ${money(expected)} collected',
+              '${money(balance)} of ${money(expected)} ${group.isSavings ? 'saved' : 'collected'}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

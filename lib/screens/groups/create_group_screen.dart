@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
+import '../../models/savings_group.dart';
+import '../../services/group_service.dart';
 import 'group_dashboard_screen.dart';
 
 class CreateGroupScreen extends StatefulWidget {
@@ -18,14 +20,33 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final description = TextEditingController();
   final amount = TextEditingController();
   final members = TextEditingController();
+  final duration = TextEditingController();
+  AjoType ajoType = AjoType.rotating;
   String frequency = 'Monthly';
+
+  String get periodUnit => switch (frequency) {
+    'Daily' => 'days',
+    'Weekly' => 'weeks',
+    'Biweekly' => 'fortnights',
+    _ => 'months',
+  };
+
+  DateTime? get repaymentDate {
+    final date = startDate;
+    final cycles = int.tryParse(duration.text);
+    if (date == null || cycles == null || cycles < 1 || cycles > 365) {
+      return null;
+    }
+    return GroupService.dateForCycle(date, frequency, cycles + 1);
+  }
+
   bool requiresApproval = true;
   DateTime? startDate;
   bool saving = false;
 
   @override
   void dispose() {
-    for (final controller in [name, description, amount, members]) {
+    for (final controller in [name, description, amount, members, duration]) {
       controller.dispose();
     }
     super.dispose();
@@ -58,6 +79,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         description: description.text,
         amountKobo: parseNairaToKobo(amount.text)!,
         frequency: frequency,
+        ajoType: ajoType,
+        savingsCycles: ajoType == AjoType.savings
+            ? int.parse(duration.text)
+            : null,
         maxMembers: int.parse(members.text),
         requiresApproval: requiresApproval,
         startDate: startDate!,
@@ -98,8 +123,31 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text('Invite members with the code created for your group.'),
-            const SizedBox(height: 24),
+            const Text(
+              'Choose how your group will save and receive its money.',
+            ),
+            const SizedBox(height: 20),
+            Text('Ajo type', style: Theme.of(context).textTheme.titleMedium),
+            RadioGroup<AjoType>(
+              groupValue: ajoType,
+              onChanged: (value) {
+                if (value != null) setState(() => ajoType = value);
+              },
+              child: Column(
+                children: AjoType.values
+                    .map(
+                      (type) => RadioListTile<AjoType>(
+                        contentPadding: EdgeInsets.zero,
+                        value: type,
+                        enabled: !saving,
+                        title: Text(type.label),
+                        subtitle: Text(type.description),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 20),
             TextFormField(
               controller: name,
               decoration: const InputDecoration(labelText: 'Group name'),
@@ -141,6 +189,26 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               onChanged: (value) =>
                   setState(() => frequency = value ?? frequency),
             ),
+            if (ajoType == AjoType.savings) ...[
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: duration,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Savings duration ($periodUnit)',
+                  helperText:
+                      'Choose 1 to 365 $periodUnit. Everyone is repaid at the end.',
+                  helperMaxLines: 2,
+                ),
+                onChanged: (_) => setState(() {}),
+                validator: (value) {
+                  final cycles = int.tryParse(value ?? '');
+                  return cycles == null || cycles < 1 || cycles > 365
+                      ? 'Enter a duration from 1 to 365 $periodUnit'
+                      : null;
+                },
+              ),
+            ],
             const SizedBox(height: 14),
             TextFormField(
               controller: members,
@@ -172,6 +240,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 startDate == null ? 'Choose start date' : shortDate(startDate!),
               ),
             ),
+            if (ajoType == AjoType.savings && repaymentDate != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Repayment date: ${shortDate(repaymentDate!)}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Each member receives their accumulated contributions. No rotating payouts.',
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton(
               onPressed: saving ? null : submit,

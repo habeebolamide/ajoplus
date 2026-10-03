@@ -1,6 +1,6 @@
 # AjoPlus mobile
 
-AjoPlus is a Flutter client for Nigerian rotating savings groups. Accounts, groups, contributions, payout schedules, transactions, and in-app notifications come from the companion Laravel API. Money is transferred as integer kobo in API requests and responses; the UI formats naira for display.
+AjoPlus is a Flutter client for Nigerian rotating and fixed-period savings groups. Accounts, groups, contributions, payout schedules, transactions, and in-app notifications come from the companion Laravel API. Money is transferred as integer kobo in API requests and responses; the UI formats naira for display.
 
 ## Setup
 
@@ -14,7 +14,12 @@ The default is `http://ajoplus-backend.test/api/v1/`, suitable when the local `.
 
 The app requests a Paystack test checkout from Laravel, opens the hosted checkout in the device browser, and asks Laravel to verify the outcome when the app resumes or the user taps **Check payment status**. A contribution becomes paid only after the backend verifies Paystack's reference, amount in kobo, currency, customer, and test domain. The backend also accepts signed Paystack webhooks. Paystack's test secret belongs only in the backend `.env`.
 
-Once every member has paid, the organizer can prepare a payout. It remains **pending** until the organizer records an external transfer reference after manually settling the recipient. This records the organizer's statement; the app does not initiate a bank transfer.
+Group creation offers **Rotating Ajo** and **Savings Ajo**. Existing groups remain rotating.
+
+- **Rotating Ajo:** one member receives the collected pool each cycle. The number of cycles equals the number of members.
+- **Savings Ajo:** choose 1–365 contribution periods independently of the member count. The organizer completes each fully paid cycle without releasing funds. Repayment becomes available after the chosen number of full periods from the start date (six monthly contributions means repayment six months after the start date). Each member receives their own accumulated contributions, and the group completes only after every repayment is recorded.
+
+For rotating groups, once every member has paid, the organizer can prepare a payout. It remains **pending** until the organizer records an external transfer reference after manually settling the recipient. Savings repayments also require a separate external transfer reference for each member. This records the organizer's statement; the app does not initiate a bank transfer.
 
 ## Data and security
 

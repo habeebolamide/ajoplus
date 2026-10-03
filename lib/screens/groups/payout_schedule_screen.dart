@@ -17,42 +17,75 @@ class PayoutScheduleScreen extends StatelessWidget {
         .where((item) => item.groupId == groupId)
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Payout schedule')),
+      appBar: AppBar(
+        title: Text(group.isSavings ? 'Repayment schedule' : 'Payout schedule'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Payout order is fixed when members join. Dates follow the group frequency.',
+            group.isSavings
+                ? 'Each member receives their ${group.totalCycles} contributions on ${shortDate(GroupService.maturityDate(group))}. Savings stay in the group until then.'
+                : 'Payout order is fixed when members join. Dates follow the group frequency.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
-          ...List.generate(group.maxMembers, (index) {
-            final cycle = index + 1;
-            final entries = schedule.where((item) => item.cycle == cycle);
-            final entry = entries.isEmpty ? null : entries.first;
-            final status = entry?.status == 'completed'
-                ? 'Completed'
-                : app.payouts.any(
-                    (p) =>
-                        p.groupId == groupId &&
-                        p.cycle == cycle &&
-                        p.status == 'Pending',
-                  )
-                ? 'Pending settlement'
-                : cycle == group.currentCycle
-                ? 'Upcoming'
-                : 'Scheduled';
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Text('$cycle')),
-                title: Text(entry?.recipientName ?? 'Awaiting member'),
-                subtitle: Text(
-                  'Cycle $cycle · ${shortDate(entry?.scheduledFor ?? GroupService.cycleDate(group, cycle))}',
+          if (group.isSavings)
+            ...schedule.map((entry) {
+              final member = app
+                  .groupMembers(groupId)
+                  .firstWhere((member) => member.userId == entry.recipientId);
+              final pending = app.payouts.any(
+                (payout) =>
+                    payout.groupId == groupId &&
+                    payout.memberId == member.id &&
+                    payout.status == 'Pending',
+              );
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.savings_outlined),
+                  title: Text(entry.recipientName),
+                  subtitle: Text(
+                    '${money(entry.amountKobo)} · ${shortDate(entry.scheduledFor)}',
+                  ),
+                  trailing: StatusChip(
+                    entry.status == 'completed'
+                        ? 'Completed'
+                        : pending
+                        ? 'Pending settlement'
+                        : 'Scheduled',
+                  ),
                 ),
-                trailing: StatusChip(status),
-              ),
-            );
-          }),
+              );
+            })
+          else
+            ...List.generate(group.totalCycles, (index) {
+              final cycle = index + 1;
+              final entries = schedule.where((item) => item.cycle == cycle);
+              final entry = entries.isEmpty ? null : entries.first;
+              final status = entry?.status == 'completed'
+                  ? 'Completed'
+                  : app.payouts.any(
+                      (p) =>
+                          p.groupId == groupId &&
+                          p.cycle == cycle &&
+                          p.status == 'Pending',
+                    )
+                  ? 'Pending settlement'
+                  : cycle == group.currentCycle
+                  ? 'Upcoming'
+                  : 'Scheduled';
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(child: Text('$cycle')),
+                  title: Text(entry?.recipientName ?? 'Awaiting member'),
+                  subtitle: Text(
+                    'Cycle $cycle · ${shortDate(entry?.scheduledFor ?? GroupService.cycleDate(group, cycle))}',
+                  ),
+                  trailing: StatusChip(status),
+                ),
+              );
+            }),
         ],
       ),
     );

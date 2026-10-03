@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/group_preview.dart';
+import '../../models/savings_group.dart';
+import '../../services/group_service.dart';
 import '../../utils/formatters.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
@@ -157,6 +159,16 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(group.description),
+                    const SizedBox(height: 8),
+                    Text(
+                      group.ajoType.label,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(group.ajoType.description),
+                    if (group.ajoType == AjoType.savings)
+                      Text(
+                        '${group.totalCycles} contribution cycles · repayment on ${shortDate(GroupService.dateForCycle(group.startDate, group.frequency, group.totalCycles + 1))}',
+                      ),
                     const SizedBox(height: 10),
                     Text(
                       'Contribution: ${money(group.amountKobo)} · ${group.frequency}',

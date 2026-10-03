@@ -14,7 +14,10 @@ class ContributionsScreen extends StatelessWidget {
     final app = context.watch<AppProvider>();
     final group = app.group(groupId);
     final user = context.watch<AuthProvider>().user!;
-    final rows = app.groupContributions(groupId, cycle: group.currentCycle);
+    final rows = app.groupContributions(
+      groupId,
+      cycle: group.isComplete ? group.totalCycles : group.currentCycle,
+    );
     final own = app.ownContribution(group, user.id);
     final history = app.groupContributions(groupId)
       ..sort((a, b) => b.cycle.compareTo(a.cycle));
@@ -24,7 +27,7 @@ class ContributionsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           MetricCard(
-            'Cycle balance',
+            group.isSavings ? 'Total saved' : 'Cycle balance',
             '${money(app.balance(group))} / ${money(app.expected(group))}',
             detail:
                 '${rows.where((row) => row.status == 'Paid').length} of ${rows.length} paid',
@@ -43,7 +46,7 @@ class ContributionsScreen extends StatelessWidget {
               label: const Text('Pay Contribution'),
             ),
           ],
-          const SectionTitle('Current cycle'),
+          SectionTitle(group.isComplete ? 'Final cycle' : 'Current cycle'),
           if (rows.isEmpty)
             const EmptyState(
               icon: Icons.payments_outlined,

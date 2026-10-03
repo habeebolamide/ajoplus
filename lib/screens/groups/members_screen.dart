@@ -13,8 +13,9 @@ class MembersScreen extends StatelessWidget {
     final app = context.watch<AppProvider>();
     final group = app.group(groupId);
     final members = app.groupMembers(groupId);
-    final rows = app.groupContributions(groupId, cycle: group.currentCycle);
-    final due = GroupService.cycleDate(group, group.currentCycle);
+    final cycle = group.isComplete ? group.totalCycles : group.currentCycle;
+    final rows = app.groupContributions(groupId, cycle: cycle);
+    final due = GroupService.cycleDate(group, cycle);
     return Scaffold(
       appBar: AppBar(title: const Text('Members')),
       body: ListView(
@@ -28,7 +29,9 @@ class MembersScreen extends StatelessWidget {
           ...members.map((member) {
             final matching = rows.where((row) => row.memberId == member.id);
             final paid = matching.any((row) => row.status == 'Paid');
-            final status = paid
+            final status = group.isComplete
+                ? 'Completed'
+                : paid
                 ? 'Paid'
                 : due.isBefore(DateTime.now())
                 ? 'Overdue'
@@ -39,7 +42,11 @@ class MembersScreen extends StatelessWidget {
                   child: Text(member.name.characters.first),
                 ),
                 title: Text(member.name),
-                subtitle: Text('Payout position ${member.payoutPosition}'),
+                subtitle: Text(
+                  group.isSavings
+                      ? 'Repaid after the savings period'
+                      : 'Payout position ${member.payoutPosition}',
+                ),
                 trailing: StatusChip(status),
               ),
             );
