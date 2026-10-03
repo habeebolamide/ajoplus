@@ -1,9 +1,33 @@
 import '../services/api_data.dart';
+import '../services/api_client.dart';
+
+enum AjoType {
+  rotating,
+  savings;
+
+  String get label => this == rotating ? 'Rotating Ajo' : 'Savings Ajo';
+  String get description => this == rotating
+      ? 'Money is paid to one member every agreed cycle.'
+      : 'Contributions accumulate and are paid back after an agreed period.';
+
+  static AjoType parse(Object? value) => switch (value) {
+    'rotating' => rotating,
+    'savings' => savings,
+    _ => throw const ApiException(
+      'The server returned an unsupported Ajo type.',
+    ),
+  };
+}
 
 class SavingsGroup {
   final String id, name, description, creatorId, frequency, inviteCode;
   final int contributionAmountKobo, maxMembers, currentCycle;
   final bool requiresApproval;
+  final AjoType ajoType;
+  final int totalCycles;
+
+  bool get isSavings => ajoType == AjoType.savings;
+  bool get isComplete => currentCycle > totalCycles;
   final DateTime startDate, createdAt;
   const SavingsGroup({
     required this.id,
@@ -18,7 +42,9 @@ class SavingsGroup {
     this.requiresApproval = true,
     required this.currentCycle,
     required this.createdAt,
-  });
+    this.ajoType = AjoType.rotating,
+    int? totalCycles,
+  }) : totalCycles = totalCycles ?? maxMembers;
   factory SavingsGroup.fromApi(Object? raw) {
     final data = ApiData.object(raw);
     final frequency = ApiData.oneOf(data, 'frequency', [
@@ -27,7 +53,18 @@ class SavingsGroup {
       'biweekly',
       'monthly',
     ]);
+    final type = AjoType.parse(
+      data.containsKey('ajo_type') ? data['ajo_type'] : 'rotating',
+    );
+    final cycles = type == AjoType.savings
+        ? ApiData.integer(data, 'savings_cycles')
+        : ApiData.integer(data, 'max_members');
+    if (cycles < 1 || cycles > 365) {
+      throw const ApiException('The server returned an invalid Ajo duration.');
+    }
     return SavingsGroup(
+      ajoType: type,
+      totalCycles: cycles,
       id: ApiData.id(data, 'id'),
       name: ApiData.string(data, 'name'),
       description: ApiData.optionalString(data, 'description'),
@@ -44,7 +81,18 @@ class SavingsGroup {
   }
   factory SavingsGroup.from(Object? raw) {
     final m = Map<String, Object?>.from(raw as Map);
+    final type = AjoType.parse(
+      m.containsKey('ajoType') ? m['ajoType'] : 'rotating',
+    );
+    final cycles = type == AjoType.savings
+        ? m['totalCycles'] as int
+        : m['maxMembers'] as int;
+    if (cycles < 1 || cycles > 365) {
+      throw const FormatException('Invalid saved Ajo duration.');
+    }
     return SavingsGroup(
+      ajoType: type,
+      totalCycles: cycles,
       id: m['id'] as String,
       name: m['name'] as String,
       description: m['description'] as String,
@@ -62,6 +110,8 @@ class SavingsGroup {
     );
   }
   Map<String, dynamic> toMap() => {
+    'ajoType': ajoType.name,
+    'totalCycles': totalCycles,
     'id': id,
     'name': name,
     'description': description,
@@ -76,6 +126,8 @@ class SavingsGroup {
     'createdAt': createdAt.toIso8601String(),
   };
   SavingsGroup withCycle(int cycle) => SavingsGroup(
+    ajoType: ajoType,
+    totalCycles: totalCycles,
     id: id,
     name: name,
     description: description,

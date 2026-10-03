@@ -154,15 +154,22 @@ class AppProvider extends ChangeNotifier {
   bool isMember(String groupId, String userId) =>
       members.any((m) => m.groupId == groupId && m.userId == userId);
   List<SavingsGroup> myGroups(String userId) => groups;
-  int balance(SavingsGroup group) =>
-      GroupService.balance(groupContributions(group.id), group.currentCycle);
+  int balance(SavingsGroup group) => group.isSavings
+      ? groupContributions(group.id)
+            .where((row) => row.status == 'Paid')
+            .fold(0, (sum, row) => sum + row.amountKobo)
+      : GroupService.balance(groupContributions(group.id), group.currentCycle);
   int expected(SavingsGroup group) =>
-      group.contributionAmountKobo * group.maxMembers;
+      group.contributionAmountKobo *
+      group.maxMembers *
+      (group.isSavings ? group.totalCycles : 1);
   GroupMember? recipient(SavingsGroup group, [int? cycle]) =>
-      GroupService.recipient(
-        groupMembers(group.id),
-        cycle ?? group.currentCycle,
-      );
+      group.isSavings || group.isComplete
+      ? null
+      : GroupService.recipient(
+          groupMembers(group.id),
+          cycle ?? group.currentCycle,
+        );
 
   Contribution? ownContribution(SavingsGroup group, String userId) {
     final own = groupMembers(group.id).where((m) => m.userId == userId);
@@ -182,7 +189,7 @@ class AppProvider extends ChangeNotifier {
     for (final group in groups) {
       final currentPaid = ownContribution(group, userId)?.status == 'Paid';
       final cycle = currentPaid ? group.currentCycle + 1 : group.currentCycle;
-      if (cycle > group.maxMembers) continue;
+      if (cycle > group.totalCycles) continue;
       upcoming.add((
         group: group,
         cycle: cycle,
@@ -202,10 +209,14 @@ class AppProvider extends ChangeNotifier {
     required int maxMembers,
     required bool requiresApproval,
     required DateTime startDate,
+    AjoType ajoType = AjoType.rotating,
+    int? savingsCycles,
   }) async {
     final date =
         '${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
     final raw = await api.post('groups', {
+      'ajo_type': ajoType.name,
+      if (ajoType == AjoType.savings) 'savings_cycles': savingsCycles,
       'name': name.trim(),
       'description': description.trim(),
       'contribution_amount_kobo': amountKobo,
@@ -288,7 +299,13 @@ class AppProvider extends ChangeNotifier {
   bool canComplete(SavingsGroup group) {
     final people = groupMembers(group.id);
     final rows = groupContributions(group.id, cycle: group.currentCycle);
-    return people.length == group.maxMembers &&
+    return !group.isComplete &&
+        (!group.isSavings ||
+            group.currentCycle < group.totalCycles ||
+            !GroupService.maturityDate(
+              group,
+            ).isAfter(DateUtils.dateOnly(DateTime.now()))) &&
+        people.length == group.maxMembers &&
         !payouts.any(
           (p) => p.groupId == group.id && p.cycle == group.currentCycle,
         ) &&
@@ -309,9 +326,14 @@ class AppProvider extends ChangeNotifier {
     await refresh();
   }
 
-  Future<void> settlePayout(SavingsGroup group, String reference) async {
+  Future<void> settlePayout(
+    SavingsGroup group,
+    String reference, {
+    String? payoutId,
+  }) async {
     await api.post('groups/${group.id}/settle-payout', {
       'reference': reference.trim(),
+      if (payoutId != null) 'payout_id': int.parse(payoutId),
     });
     await refresh();
   }
@@ -326,7 +348,7 @@ class AppProvider extends ChangeNotifier {
     if (!(StorageService.prefs.getBool('reminders') ?? true)) return;
     final now = DateTime.now();
     for (final group in groups) {
-      if (group.currentCycle > group.maxMembers ||
+      if (group.isComplete ||
           ownContribution(group, userId)?.status == 'Paid') {
         continue;
       }
